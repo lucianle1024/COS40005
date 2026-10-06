@@ -1,0 +1,30 @@
+﻿Issue Type,Summary,Description,Epic Link,Priority,Labels,SCAF Phase,Acceptance Criteria,Evidence Link,Research Objective,Requirement ID,Story Points
+Epic,Research,Research workstream,,Highest,research,Research Foundation,,,,
+Epic,Stakeholder & Requirements,Stakeholder and requirements workstream,,Highest,requirement,Discovery,,,,
+Epic,Architecture & Design,Architecture and design workstream,,High,architecture,Requirements & Baseline,,,,
+Epic,Development,Implementation workstream,,High,development,Sprint 1,,,,
+Epic,Experimentation,Experiments and research validation,,High,experiment,Sprint 1,,,,
+Epic,Testing & Validation,Testing and validation workstream,,High,testing;validation,Sprint 1,,,,
+Epic,Security & Risk,Security and project risk workstream,,High,security;risk,Requirements & Baseline,,,,
+Epic,Documentation,Technical and project documentation,,Medium,documentation,Discovery,,,,
+Epic,Presentation,Presentation and demonstration,,Medium,presentation,Presentation & Closure,,,,
+Epic,Handover,Final handover and continuation,,Medium,handover,Presentation & Closure,,,,
+Task,Draft Project Charter,"Define problem, scope, objectives and success criteria",Stakeholder & Requirements,High,requirement,Discovery,Project Charter reviewed by team,,,,3
+Task,Create Stakeholder Register,"Identify stakeholders, needs and engagement approach",Stakeholder & Requirements,High,stakeholder,Discovery,Key stakeholders and needs documented,,,,2
+Research Task,Define research questions,Define research questions and objectives,Research,Highest,research;star-candidate,Research Foundation,RQ and objectives are clear and feasible,,RO-01,,3
+Research Task,Build literature matrix,Review relevant literature and identify research gap,Research,High,research,Research Foundation,Literature matrix contains relevant sources and gaps,,RO-01,,5
+Task,Define functional requirements,Create traceable functional requirements,Stakeholder & Requirements,High,requirement,Requirements & Baseline,Requirements have source and acceptance criteria,,,FR-001,5
+Task,Define system architecture,Create and justify high-level architecture,Architecture & Design,Highest,architecture;star-candidate,Requirements & Baseline,"Architecture components, interfaces and rationale documented",,,,5
+Risk,Identify baseline risks,Identify and assess major project risks,Security & Risk,High,risk,Requirements & Baseline,Major risks have owner and mitigation,,,,3
+Task,Prepare Product Backlog,Create and prioritise initial backlog,Documentation,High,documentation,Requirements & Baseline,Backlog is prioritised and ready for Sprint Planning,,,,3
+Task,Sprint 1 Planning,Define Sprint Goal and Sprint Backlog,Development,Highest,development,Sprint 1,Sprint Goal is outcome-oriented; work has owners and evidence expectations,,,,2
+Experiment,Run initial validation experiment,Execute first research/technical validation,Experimentation,High,experiment;validation;star-candidate,Sprint 1,"Experiment method, result and evidence documented",,RO-01,,5
+Task,Implement first increment,Build first demonstrable project increment,Development,Highest,development;star-candidate,Sprint 1,"Increment implemented, reviewed and evidence linked",,,,8
+Task,Sprint 1 testing,Test Sprint 1 increment against acceptance criteria,Testing & Validation,Highest,testing;validation,Sprint 1,Test results documented and linked,,,,5
+Evidence,Prepare Sprint 1 evidence package,"Organise product, research, process and individual evidence",Documentation,High,documentation,Sprint 1,Evidence package complete and traceable,,,,3
+Task,Sprint 2 Planning,Define Sprint 2 Goal based on Sprint 1 learning,Development,Highest,development,Sprint 2,Sprint Goal and updated backlog agreed,,,,2
+Task,Integrate project components,Integrate major project components,Development,Highest,development;star-candidate,Sprint 2,Integrated system demonstrated,,,,8
+Experiment,Final validation,Complete final tests/experiments and analyse results,Testing & Validation,Highest,testing;validation;experiment,Sprint 2,Results support or qualify project claims,,RO-01,,8
+Evidence,Prepare Sprint 2 evidence package,Organise final Sprint evidence,Documentation,High,documentation,Sprint 2,"Product, research, process and STAR evidence complete",,,,3
+Task,Prepare final video/demo,Prepare final project presentation and demonstration,Presentation,High,presentation,Presentation & Closure,"Presentation communicates problem, method, solution, results and limitations",,,,5
+Task,Prepare handover,"Complete README, documentation, known issues and future work",Handover,High,handover;documentation,Presentation & Closure,Project can be understood and continued by another party,,,,5

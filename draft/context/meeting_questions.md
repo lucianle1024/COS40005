@@ -36,7 +36,7 @@ Here is a proposed division of responsibilities.
 
 | Member | Primary responsibility | Main tasks |
 | ----- | ----- | ----- |
-| AI student 1 — You | AI research and evaluation | Research LLMs, prompt engineering, hallucinations, and human-AI collaboration |
+| AI student 1 | AI research and evaluation | Research LLMs, prompt engineering, hallucinations, and human-AI collaboration |
 | AI student 2 | AI prototype and architecture | Investigate suitable AI models, APIs, RAG, and possible AI-assisted features |
 | Data Science student | Dataset and evaluation | Research security datasets, ground truth, experimental design, and performance metrics |
 | Cybersecurity student | Security investigation | Research incident response, log analysis, IOCs, MITRE ATT\&CK, and realistic scenarios |
