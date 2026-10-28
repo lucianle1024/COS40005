@@ -1,0 +1,15 @@
+﻿{
+  "unchangedMethods": [
+    "edit",
+    "persist",
+    "switchMode",
+    "requestMode",
+    "handleReview",
+    "add",
+    "requestFinalisation",
+    "confirmFinalisation"
+  ],
+  "storage": "unchanged apart from relocated type import",
+  "caseValidation": "unchanged",
+  "schemaAndGeneratedTypes": "not edited"
+}

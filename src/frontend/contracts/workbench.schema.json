@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InvestigationCase",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "title",
+    "category",
+    "provenance",
+    "summary",
+    "evidence",
+    "advice",
+    "automatedAssessment"
+  ],
+  "properties": {
+    "id": { "$ref": "#/definitions/Identifier" },
+    "version": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "category": { "type": "string", "minLength": 1 },
+    "provenance": { "const": "synthetic", "type": "string" },
+    "summary": { "type": "string" },
+    "evidence": { "type": "array", "items": { "$ref": "#/definitions/EvidenceRecord" } },
+    "advice": { "type": "array", "items": { "$ref": "#/definitions/AdviceItem" } },
+    "automatedAssessment": { "$ref": "#/definitions/AutomatedAssessment" }
+  },
+  "definitions": {
+    "Identifier": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "Classification": {
+      "type": "string",
+      "enum": ["undetermined", "benign", "suspicious", "malicious"]
+    },
+    "EvidenceIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/Identifier" }
+    },
+    "EvidenceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "kind", "timestamp", "source", "content", "indicators"],
+      "properties": {
+        "id": { "$ref": "#/definitions/Identifier" },
+        "title": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "enum": ["Email", "Network", "Endpoint"] },
+        "timestamp": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "source": { "type": "string" },
+        "content": { "type": "string" },
+        "indicators": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "AdviceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "classification", "rationale", "evidenceIds"],
+      "properties": {
+        "id": { "$ref": "#/definitions/Identifier" },
+        "title": { "type": "string", "minLength": 1 },
+        "classification": { "$ref": "#/definitions/Classification" },
+        "rationale": { "type": "string" },
+        "evidenceIds": { "$ref": "#/definitions/EvidenceIds" }
+      }
+    },
+    "AutomatedAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["classification", "rationale", "evidenceIds", "limitations"],
+      "properties": {
+        "classification": { "$ref": "#/definitions/Classification" },
+        "rationale": { "type": "string" },
+        "evidenceIds": { "$ref": "#/definitions/EvidenceIds" },
+        "limitations": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
