@@ -1,0 +1,8 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Script ran on page and returned:\n```json\n{\"viewport\":[1366,768],\"document\":[1366,768],\"mode\":\"workbench mode-combined\",\"actions\":{\"top\":628.453125,\"bottom\":711.953125,\"visible\":true},\"raw\":{\"client\":258,\"scroll\":258,\"overflow\":\"visible\"},\"citationNames\":[\"Cited E01: remove citation\"],\"expandName\":\"Expand record E01\",\"saveState\":\"Saved in this browser\"}\n```"
+    }
+  ]
+}

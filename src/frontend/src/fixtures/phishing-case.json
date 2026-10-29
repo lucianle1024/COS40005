@@ -1,0 +1,71 @@
+{
+  "id": "case-01",
+  "version": "0.1",
+  "title": "A suspicious invoice",
+  "category": "Phishing",
+  "provenance": "synthetic",
+  "summary": "A finance mailbox received an unexpected invoice. Inspect the email, browsing and endpoint records, then record what the evidence supports.",
+  "evidence": [
+    {
+      "id": "E01",
+      "title": "Message headers",
+      "kind": "Email",
+      "timestamp": "2026-10-26T09:12:04Z",
+      "source": "Synthetic mailbox export",
+      "content": "From: Accounts <billing@invoice-check.example>\nTo: finance@organisation.example\nSubject: Invoice INV-1048: action requested\nDate: 26 Oct 2026 09:12:04 +0000\nReply-To: collections@invoice-check.example\nAuthentication-Results: spf=fail; dkim=none; dmarc=fail\n\nPlease review the updated invoice at:\nhxxps://invoice-check[.]example/review/INV-1048\n\nSynthetic training message. Do not visit indicators.",
+      "indicators": ["invoice-check[.]example", "INV-1048"]
+    },
+    {
+      "id": "E02",
+      "title": "Proxy activity",
+      "kind": "Network",
+      "timestamp": "2026-10-26T09:14:22Z",
+      "source": "Synthetic web proxy",
+      "content": "2026-10-26T09:14:22Z | host=FIN-07 | user=finance-user\nmethod=GET | destination=invoice-check.example\npath=/review/INV-1048 | status=200\nbytes_received=18432 | action=allowed\n\nThis record shows a request and response. It does not establish credential submission or data exfiltration.",
+      "indicators": ["FIN-07", "invoice-check[.]example"]
+    },
+    {
+      "id": "E03",
+      "title": "Endpoint process event",
+      "kind": "Endpoint",
+      "timestamp": "2026-10-26T09:16:08Z",
+      "source": "Synthetic endpoint event",
+      "content": "2026-10-26T09:16:08Z | host=FIN-07\nparent_process=outlook.exe | process=powershell.exe\ncommand_line=[redacted synthetic encoded command]\nprocess_id=4812 | user=finance-user\n\nThe command is deliberately inert and redacted. The process relationship merits investigation; no payload execution outcome is supplied.",
+      "indicators": ["FIN-07", "powershell.exe"]
+    },
+    {
+      "id": "E04",
+      "title": "DNS lookup",
+      "kind": "Network",
+      "timestamp": "2026-10-26T09:16:11Z",
+      "source": "Synthetic DNS event",
+      "content": "2026-10-26T09:16:11Z | host=FIN-07\nquery=invoice-check.example | response=192.0.2.24\nrecord_type=A | result=NOERROR\n\n192.0.2.24 is a documentation address in this synthetic case. A lookup alone does not establish a successful connection or compromise.",
+      "indicators": ["invoice-check[.]example", "192.0.2.24"]
+    }
+  ],
+  "advice": [
+    {
+      "id": "A01",
+      "title": "Investigate the invoice message",
+      "classification": "suspicious",
+      "rationale": "The message failed email authentication, and the proxy record shows access to its invoice destination. Treat this as suspicious and verify the message context before concluding that an account was compromised.",
+      "evidenceIds": ["E01", "E02"]
+    },
+    {
+      "id": "A02",
+      "title": "Check the endpoint activity",
+      "classification": "suspicious",
+      "rationale": "An email client is recorded as the parent of PowerShell on FIN-07. Correlate the process event and DNS lookup, and obtain more endpoint evidence before claiming payload execution or exfiltration.",
+      "evidenceIds": ["E03", "E04"]
+    }
+  ],
+  "automatedAssessment": {
+    "classification": "suspicious",
+    "rationale": "The supplied records support further investigation of a possible phishing attempt and associated endpoint activity. They do not establish confirmed compromise, credential theft or exfiltration.",
+    "evidenceIds": ["E01", "E02", "E03", "E04"],
+    "limitations": [
+      "Fixed demonstration output; no model was executed.",
+      "The encoded command and follow-up endpoint artefacts are unavailable."
+    ]
+  }
+}
