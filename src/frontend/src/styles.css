@@ -886,7 +886,7 @@ pre {
   font-size: 11px;
   font-weight: 600;
 }
-.review-buttons button:hover {
+.review-buttons button:not(.review-selected):hover {
   background: #f1f5f9;
 }
 .review-buttons .review-selected {
