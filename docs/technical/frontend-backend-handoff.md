@@ -1,5 +1,17 @@
 # Frontend handoff for Phi
 
+## 3 November 2026: health connection implemented
+
+React now calls GET /health through src/api/health.ts. BackendConnection handles
+feedback, a five-second timeout, cancellation and manual retry. VITE_API_BASE_URL
+defaults to http://127.0.0.1:8000. This supersedes the earlier no-HTTP-client
+description for health only. Case/AI/report/telemetry integration remains pending.
+
+Verified: 56 frontend tests; formatting, generated types, TypeScript and build;
+one backend smoke test; live HTTP 200 and the React CORS origin; browser-rendered
+Backend reachable and real health fetch entries. No horizontal overflow at the
+checked 1920x875 viewport. Whole-issue acceptance remains pending.
+
 **Status:** Frontend-only increment, 27 October 2026. Backend implementation and provider verification are not included.
 
 ## Run the frontend

@@ -1,0 +1,3 @@
+# Backend directory scaffold, 3 November 2026
+
+Tin asked Codex to apply the team-agreed directory plan so FastAPI can be installed. Codex created the reserved backend packages, minimal liveness app, dependency metadata, installation instructions and a smoke test; copied the plan into repository documentation and added runtime-file ignores. Team agreement is user-reported. Reserved modules contain no feature implementation. No dependency installation, frontend/API integration, schema migration or AI call was performed. Python source syntax and TOML parsing were checked; the runtime smoke test remains pending installation. Prepared with ChatGPT/Codex assistance for team review.

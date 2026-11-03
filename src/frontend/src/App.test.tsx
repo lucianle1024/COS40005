@@ -1,9 +1,20 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { loadDemoCase } from './api/demo-provider';
 import type { InvestigationCase } from './api/generated';
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'ok' }),
+    }),
+  );
+});
+afterEach(() => vi.unstubAllGlobals());
 
 async function open(loadCase?: () => Promise<InvestigationCase>) {
   const user = userEvent.setup();

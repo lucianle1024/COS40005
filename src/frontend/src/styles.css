@@ -286,6 +286,29 @@ pre {
   font-size: 10px;
   white-space: nowrap;
 }
+.backend-connection {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.connection-connected {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+.connection-unavailable {
+  background: #fff1f2;
+  color: #9f1239;
+  border-color: #fecdd3;
+}
+.connection-retry,
+.connection-scope {
+  font-size: 10px;
+}
+.connection-scope {
+  color: var(--text-muted, #64748b);
+}
 .small-dot {
   display: inline-block;
   width: 5px;
