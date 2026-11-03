@@ -1,0 +1,21 @@
+
+# Python environments, caches and packaging
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+# Secrets and local research runtime data
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite
+*.sqlite3
+*.db-*
+*.sqlite-*
+*.sqlite3-*
+research/evaluation/private/
+research/evaluation/exports/

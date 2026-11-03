@@ -4,6 +4,17 @@ React interface for reviewing synthetic incident evidence, fixed AI advice and a
 
 ## Start locally
 
+The toolbar now checks the real FastAPI `/health` endpoint. Start the backend using
+[its instructions](../backend/README.md), then start React below. It shows checking,
+reachable or unavailable, with a Recheck backend button. Requests time out after
+five seconds. This is a manual health check; case loading, drafts, AI advice and
+activity recording still use demo behaviour.
+
+The backend address defaults to `http://127.0.0.1:8000`. To change it, copy
+`.env.example` to `.env.local`, set `VITE_API_BASE_URL`, and restart Vite. Only put
+the public address in this variable. If using another frontend origin, including
+preview on port 4173, add it to the backend's `SOC_ALLOWED_ORIGINS` setting.
+
 Use Node.js 22.12 or newer. Development and checks were run with Node 24.22.1 and npm 11.15.0 on Windows.
 
 From the team repository:

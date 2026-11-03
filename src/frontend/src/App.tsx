@@ -10,6 +10,7 @@ import { FindingsActions } from './components/FindingsActions';
 import { AutomatedOutput } from './components/AutomatedOutput';
 import { Modal } from './components/Modal';
 import { Icon } from './components/Icons';
+import { BackendConnection } from './components/BackendConnection';
 
 export interface AppProps {
   loadCase?: CaseLoader;
@@ -104,10 +105,7 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
                       : 'Inspect the fixed automated assessment without analyst edits.'}
                 </p>
               </div>
-              <span className="connection-state">
-                <span className="small-dot" />
-                Demo: activity recording unavailable
-              </span>
+              <BackendConnection />
               {draft.mode === 'ai' && (
                 <span className="save-status" role="status">
                   Read-only demo output
