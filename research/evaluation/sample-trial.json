@@ -1,0 +1,21 @@
+{
+  "session_id": "session-demo-001",
+  "scenario_id": "case_01",
+  "scenario_version": "1.0",
+  "condition": "C",
+  "synthetic_only": true,
+  "truth_iocs": [
+    {"type": "ip", "value": "192.0.2.10"},
+    {"type": "ip", "value": "192.0.2.20"},
+    {"type": "domain", "value": "alpha.example"}
+  ],
+  "reported_iocs": [
+    {"type": "ip", "value": "192.0.2.10"},
+    {"type": "domain", "value": "ALPHA[.]EXAMPLE."},
+    {"type": "ip", "value": "192.0.2.99"}
+  ],
+  "events": [
+    {"event_id": "evt-sample-1", "event_type": "triage_marked", "elapsed_ms": 30000},
+    {"event_id": "evt-sample-2", "event_type": "submit", "elapsed_ms": 180000}
+  ]
+}
