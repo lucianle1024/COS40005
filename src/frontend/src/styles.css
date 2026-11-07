@@ -254,6 +254,49 @@ pre {
 .app-shell {
   min-width: 0;
 }
+.case-selection {
+  grid-row: 1 / -1;
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: clamp(20px, 6vw, 48px) 16px;
+  overflow: auto;
+}
+.case-selection-unit {
+  font-size: 12px;
+  font-weight: 700;
+  color: #047857;
+}
+.case-selection h1 {
+  margin: 4px 0 24px;
+  font-size: clamp(24px, 5vw, 32px);
+  font-weight: 700;
+}
+.case-option {
+  padding: 18px;
+  margin-bottom: 12px;
+}
+.case-option h2 {
+  margin: 6px 0;
+  font-size: 18px;
+  font-weight: 650;
+}
+.case-option p {
+  margin-bottom: 14px;
+}
+.case-navigation {
+  flex: 0 0 auto;
+  padding: 6px 16px;
+  border-bottom: 1px solid #d8e1ea;
+}
+.case-navigation-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.case-navigation a,
+.case-option a {
+  text-decoration: none;
+}
 .workspace-toolbar {
   display: flex;
   align-items: center;
@@ -1197,6 +1240,25 @@ pre {
   padding-left: 18px;
   margin: 0;
 }
+.automated-result .assessment-label {
+  font-size: 13px;
+  font-weight: 650;
+}
+.automated-result .assessment-verdict {
+  margin: 4px 0 8px;
+  padding: 5px 10px;
+  font-size: 22px;
+  line-height: 1.25;
+  text-transform: capitalize;
+}
+.assessment-section {
+  margin: 14px 0 5px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.automated-result .assessment-signals li {
+  font-size: 13px;
+}
 .limitations-heading {
   margin-top: 20px !important;
   font-size: 12px;
@@ -1396,15 +1458,21 @@ textarea {
     min-height: 0;
     overflow: hidden;
   }
+  .records-list {
+    flex: 0 1 auto;
+    min-height: 72px;
+    max-height: 38%;
+    grid-auto-rows: max-content;
+    overflow-y: auto;
+  }
   .evidence-tools,
-  .records-list,
   .selection-hint,
   .filter-notice {
     flex-shrink: 0;
   }
   .record-inspector {
     flex: 1;
-    min-height: 0;
+    min-height: 112px;
     overflow: hidden;
   }
   .inspector-header,
@@ -1651,4 +1719,159 @@ textarea {
     animation: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Original revision: an evidence workbench with a flat reading surface. */
+:root {
+  --line: #cfd6d8;
+  --ink: #202829;
+}
+:is(body, .app-shell, .decision-pane, .records-list, .evidence-tools) {
+  background: #f6f7f5;
+}
+.app-topbar {
+  background: #263536;
+  border-color: #263536;
+}
+.case-navigation {
+  padding: 4px 16px;
+}
+.case-navigation > a {
+  min-height: 30px;
+  padding: 3px 8px;
+  background: transparent;
+  border-color: transparent;
+}
+.panel-heading {
+  padding: 10px 16px;
+}
+.panel-heading h2 {
+  font-size: 17px;
+}
+.step-number {
+  display: none;
+}
+.decision-scroll > .panel {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.advice-panel > .panel-heading {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.demo-note {
+  padding: 0;
+  margin-bottom: 10px;
+  border: 0;
+  background: transparent;
+  color: #515b5c;
+  font-size: 13px;
+}
+.advice-card h3 {
+  font-size: 16px;
+}
+.advice-rationale,
+.record-summary strong,
+.findings-shortcut {
+  font-size: 14px;
+}
+:is(.record-summary > span, .source-line, .record-id, .source-links button) {
+  font-size: 12px;
+}
+.record-row {
+  border-radius: 0;
+  border-width: 0 0 1px;
+  background: transparent;
+}
+.advice-meta > .mono {
+  display: none;
+}
+.record-row.record-active {
+  background: #dde8eb;
+  border-color: #527785;
+  box-shadow: inset 3px 0 #527785;
+}
+:root .record-active :is(.record-open, .record-id, .record-summary strong, .record-summary > span) {
+  color: #263c45;
+}
+.record-active .record-open:hover {
+  background: #d3e1e5;
+}
+:is(.inspector-header, .source-line, .indicator-list) {
+  background: #293738;
+  border-color: #47595a;
+}
+.record-content {
+  background: #1c2728;
+  font-size: 13px;
+}
+.source-links button {
+  padding: 1px 3px;
+  background: transparent;
+  border: 0;
+  color: #224f60;
+  text-decoration: underline;
+}
+.findings-shortcut {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--line);
+  color: #364345;
+}
+.primary-button {
+  background: #285363;
+  border-color: #285363;
+}
+.primary-button:hover:not(:disabled) {
+  background: #1c4554;
+}
+.findings-actions > p {
+  font-size: 12px;
+}
+
+/* Reading sizes for the revised Original at normal browser zoom. */
+.panel-heading h2 {
+  font-size: 21px;
+}
+:is(.case-identity h1, .record-summary strong, .advice-card h3) {
+  font-size: 17px;
+}
+:root
+  :is(
+    .advice-rationale,
+    .automated-result p,
+    .automated-result li,
+    .assessment-section,
+    .record-content,
+    .findings-fields textarea,
+    .findings-fields select
+  ) {
+  font-size: 15px;
+}
+:root
+  :is(
+    .record-summary > span,
+    .record-id,
+    .source-line,
+    .source-links button,
+    .panel-intro,
+    .case-navigation,
+    .findings-actions button,
+    .evidence-tools input,
+    .evidence-tools select
+  ) {
+  font-size: 14px;
+}
+:is(.mode-selector button, .command-button, .case-context, .panel-count) {
+  font-size: 13px;
+}
+.automated-result .assessment-verdict {
+  font-size: 27px;
 }

@@ -63,17 +63,13 @@ describe('investigation workspace', () => {
     expect(screen.getByRole('button', { name: 'Case brief' })).toHaveFocus();
     expect(screen.getByRole('textbox', { name: 'Your reasoning' })).toHaveValue('Keep my draft.');
   });
-  it('keeps citation actions in the list and original record synchronized', async () => {
+  it('uses a single citation action in the record inspector', async () => {
     const { user } = await open();
     const inspector = screen.getByRole('region', { name: 'Original record' });
-    await user.click(
-      within(inspector).getByRole('button', { name: 'Cite E01 as supporting evidence' }),
-    );
-    expect(screen.getAllByRole('button', { name: 'Cited E01: remove citation' })).toHaveLength(2);
-    await user.click(screen.getAllByRole('button', { name: 'Cited E01: remove citation' })[0]);
-    expect(screen.getAllByRole('button', { name: 'Cite E01 as supporting evidence' })).toHaveLength(
-      2,
-    );
+    const cite = screen.getByRole('button', { name: 'Cite E01 as supporting evidence' });
+    expect(inspector).toContainElement(cite);
+    await user.click(cite);
+    await user.click(within(inspector).getByRole('button', { name: 'Cited E01: remove citation' }));
     expect(screen.getByText('Supporting records')).toHaveTextContent('(0)');
   });
   it('keeps the active raw record available while filtering the navigator', async () => {
@@ -90,7 +86,7 @@ describe('investigation workspace', () => {
     expect(within(findings).getByRole('status')).toHaveTextContent('Not saved');
     const card = screen.getByRole('article', { name: 'Investigate the invoice message' });
     await user.click(within(card).getByRole('button', { name: 'Accept' }));
-    expect(within(card).getByText(/This records your response only/)).toBeVisible();
+    expect(within(card).getByRole('button', { name: 'Add to findings' })).toBeVisible();
     expect(within(findings).getByRole('textbox', { name: 'Your reasoning' })).toHaveValue('');
     await user.click(within(card).getByRole('button', { name: 'Add to findings' }));
     expect(screen.getByText(/A01 added to Your findings/)).toBeVisible();
