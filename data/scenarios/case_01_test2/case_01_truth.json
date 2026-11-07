@@ -1,0 +1,39 @@
+{
+  "scenario_id": "case_01",
+  "name": "VBScript Stager and Obfuscated PowerShell Execution (Empire Launcher)",
+  "root_cause": "User 'pgustavo' executed a malicious VBScript stager ('launcher.vbs') from the Desktop via Windows Based Script Host (wscript.exe), initiated by explorer.exe. The script loaded scripting and cryptographic engines (vbscript.dll, amsi.dll, MpOAV.dll) to unpack and execute an in-memory obfuscated PowerShell payload.",
+  "iocs": {
+    "suspicious_processes": [
+      "\"C:\\windows\\System32\\WScript.exe\" \"C:\\Users\\pgustavo\\Desktop\\launcher.vbs\""
+    ],
+    "process_names": [
+      "wscript.exe",
+      "explorer.exe"
+    ],
+    "file_paths": [
+      "C:\\Users\\pgustavo\\Desktop\\launcher.vbs",
+      "C:\\Users\\pgustavo\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\launcher.lnk"
+    ],
+    "file_hashes": [
+      "F42201B5D890A96302F90102B16D7C31CFCC3B67C801BA7C6F6BE223F16D7011",
+      "563EDAE37876138FDFF47F3E7A9A78FD",
+      "542C46C652DDEFC87414213A8BEA0C65DD0377A9"
+    ],
+    "user_accounts": [
+      "THESHIRE\\pgustavo"
+    ],
+    "target_hosts": [
+      "WORKSTATION5.theshire.local"
+    ],
+    "registry_keys_modified": [
+      "HKU\\S-1-5-21-2079883792-3656946353-945924832-1104\\Software\\Microsoft\\Windows Script Host\\Settings",
+      "HKU\\S-1-5-21-2079883792-3656946353-945924832-1104\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.vbs"
+    ]
+  },
+  "mitre_techniques": [
+    "T1059.005",
+    "T1059.001",
+    "T1204.002",
+    "T1027"
+  ]
+}
