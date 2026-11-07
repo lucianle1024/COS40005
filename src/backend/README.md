@@ -1,45 +1,32 @@
 # COS40005 FastAPI backend
 
-Directory plan agreed by the team, as reported by Tin on 3 November 2026.
-This is a starter scaffold: only GET /health is implemented. Other Python modules reserve the agreed locations and contain docstrings only. SQL migrations, prompt templates and workflow tests will be added with their reviewed implementations.
+## Local setup
 
-## Install (Windows PowerShell)
-
-From the repository root:
+Use Python 3.13 for the tested dependency set. In PowerShell from the repository root:
 
 ```powershell
 cd src/backend
 py -3.13 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]" -c constraints.txt
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Python 3.11 or newer is required. Python 3.13 is installed on Tin's machine; the plain `python` command currently selects Python 3.9. Use another installed supported interpreter if necessary. Calling the virtual environment's Python directly avoids PowerShell activation-policy issues.
+Open the API documentation at http://127.0.0.1:8000/docs. Run the frontend in another terminal. The default CORS settings allow the frontend on port 5173. Set `SOC_ALLOWED_ORIGINS` to a JSON list of origins if using another port.
 
-Open http://127.0.0.1:8000/health (expected: {"status":"ok"}) and http://127.0.0.1:8000/docs for API documentation. Stop with Ctrl+C.
+## Case 1 lifecycle
 
-Optional: copy .env.example to .env for local settings. The app runs with defaults without a .env. Defaults allow GET requests from the React development origins on port 5173. Extend CORS alongside actual endpoints and the reviewed access model.
+- `GET /sessions/case-01` serves the case metadata and evidence records. It excludes the evaluation answer key.
+- `POST /sessions` opens an attempt and records the start time. Repeating the same attempt key, case version and mode resumes that attempt.
+- `GET /sessions/{id}` returns the saved state. The draft and finalise routes save human findings. Finalisation requires reasoning and a citation from the case. Subsequent writes return a conflict.
+- `POST /sessions/{id}/complete-ai` saves the AI-only assessment. `POST /investigate` runs the same fixed-rule assessment on supplied evidence. Its confidence field is an uncalibrated rule score.
+- `SOC_SESSION_DATABASE` overrides the default `investigation-sessions.sqlite3` in the backend working directory. Use a separate database for testing.
 
-## Test after installing
+This is a local development build. Case 1 Human + AI serves fixed-rule claims from `GET /sessions/{session_id}/advice`. The route is limited to Human + AI sessions. Individual review decisions are held in the React workspace. Participant access control and telemetry are outside this increment.
+
+## Checks
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
-The smoke test covers liveness and OpenAPI registration. It does not check database connectivity, AI calls or frontend integration. Dependencies are declared as compatible ranges; lock resolved versions once the team has verified installation.
-
-## Directory responsibilities
-
-- app/main.py: construct FastAPI and register implemented routes.
-- app/config.py: environment settings and allowed frontend origins.
-- app/api/: HTTP endpoints; only health.py currently serves a route.
-- app/schemas/: future Pydantic request/response definitions.
-- app/domain/: future investigation rules independent of HTTP and SQL.
-- app/services/: future workflow coordination.
-- app/ai/: future provider routing, validation and versioned prompts.
-- app/db/: future SQLite access and Nhat's reviewed migrations.
-- tests/: backend behaviour and API checks.
-
-See ../../docs/technical/team-directory-map.md for team leads and ../../docs/technical/backend-directory-plan.md for the detailed plan. Agreement on directory placement does not approve unfinished API/schema decisions. Confirm existing unpublished work with Phi and Nhat before filling the reserved modules.
-
-Setup follows the official FastAPI guides: https://fastapi.tiangolo.com/virtual-environments/ and https://fastapi.tiangolo.com/tutorial/first-steps/ .
+The connected CI workflow runs the backend tests and exercises the React workflow against a temporary SQLite database. Dependency constraints record the resolved Python 3.13 package versions.

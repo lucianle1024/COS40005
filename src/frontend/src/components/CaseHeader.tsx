@@ -8,12 +8,14 @@ export function CaseHeader({
   onModeChange,
   onBrief,
   onAbout,
+  connected = false,
 }: {
   data: InvestigationCase;
   mode: WorkflowMode;
   onModeChange: (mode: WorkflowMode) => void;
   onBrief: () => void;
   onAbout: () => void;
+  connected?: boolean;
 }) {
   return (
     <header className="command-bar">
@@ -28,13 +30,17 @@ export function CaseHeader({
           {data.category} / v{data.version}
         </span>
       </div>
-      <ModeSelector mode={mode} onChange={onModeChange} />
+      {connected ? (
+        <span>{{ human: 'Human only', ai: 'AI only', combined: 'Human + AI' }[mode]}</span>
+      ) : (
+        <ModeSelector mode={mode} onChange={onModeChange} />
+      )}
       <div className="command-actions">
         <button type="button" className="command-button" onClick={onBrief}>
           Case brief
         </button>
         <button type="button" className="command-button" onClick={onAbout}>
-          About this demo
+          {connected ? 'About this case' : 'About this demo'}
         </button>
       </div>
     </header>
