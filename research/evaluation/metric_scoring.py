@@ -5,6 +5,7 @@ Case 1 ground truth and telemetry contract are approved by the team.
 """
 
 import argparse
+import hashlib
 import ipaddress
 import json
 import re
@@ -84,11 +85,27 @@ def canonical_finding(item):
 
 
 def score_reference_findings(case_truth, reported):
-    """Score category/value agreement with a reference file, not IOC maliciousness."""
-    return _score_sets(
-        {canonical_finding(item) for item in reference_findings(case_truth)},
-        {canonical_finding(item) for item in reported},
-    )
+    """Count reference agreement, without claiming unmatched findings are false positives."""
+    expected = {canonical_finding(item) for item in reference_findings(case_truth)}
+    predicted = {canonical_finding(item) for item in reported}
+    matched, unmatched, missing = expected & predicted, predicted - expected, expected - predicted
+    categories = sorted({category for category, _ in expected | predicted})
+    return {
+        "matched_count": len(matched),
+        "unmatched_reported_count": len(unmatched),
+        "missing_reference_count": len(missing),
+        "unmatched_reported": [
+            {"category": category, "value": value} for category, value in sorted(unmatched)
+        ],
+        "by_category": {
+            category: {
+                "matched_count": sum(item[0] == category for item in matched),
+                "unmatched_reported_count": sum(item[0] == category for item in unmatched),
+                "missing_reference_count": sum(item[0] == category for item in missing),
+            }
+            for category in categories
+        },
+    }
 
 
 def evaluate_trial(trial):
@@ -149,6 +166,8 @@ def main():
         result = {
             "dataset": args.case_truth.parent.name,
             "scenario_id": truth["scenario_id"],
+            "rubric_version": "draft-v0.2",
+            "reference_sha256": hashlib.sha256(args.case_truth.read_bytes()).hexdigest(),
             "reference_counts": {
                 **{category: len(values) for category, values in truth["iocs"].items()},
                 "mitre_techniques": len(truth.get("mitre_techniques", [])),
@@ -158,6 +177,8 @@ def main():
             report = json.loads(args.report.read_text(encoding="utf-8"))
             if report["dataset"] != result["dataset"]:
                 raise ValueError("Report dataset does not match reference dataset")
+            if report.get("reference_sha256", result["reference_sha256"]) != result["reference_sha256"]:
+                raise ValueError("Report reference_sha256 does not match the truth file")
             result["reference_matching"] = score_reference_findings(
                 truth, report["reported_findings"]
             )

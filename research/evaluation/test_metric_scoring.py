@@ -1,6 +1,10 @@
 """Synthetic unit tests for the draft evaluation scorer."""
 
 import json
+import hashlib
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -97,8 +101,8 @@ class MetricScoringTests(unittest.TestCase):
         findings = reference_findings(truth)
         self.assertEqual((len(truth["iocs"]["suspicious_processes"]), len(findings)), (3, 12))
         result = score_reference_findings(truth, findings)
-        self.assertEqual((result["tp"], result["fp"], result["fn"]), (12, 0, 0))
-        self.assertEqual(result["f1"], 1.0)  # Self-check only, not participant performance.
+        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (12, 0, 0))
+        self.assertEqual(result["by_category"]["mitre_techniques"]["matched_count"], 4)
 
     def test_case2_reference_matches_real_truth(self):
         truth = self.case_truth("case_01_test2")
@@ -107,29 +111,61 @@ class MetricScoringTests(unittest.TestCase):
         self.assertEqual(sorted(map(len, truth["iocs"]["file_hashes"])), [32, 40, 64])
         normalized = [{**item, "value": item["value"].swapcase()} for item in findings]
         result = score_reference_findings(truth, normalized)
-        self.assertEqual((result["tp"], result["fp"], result["fn"]), (16, 0, 0))
+        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (16, 0, 0))
 
     def test_case1_partial_report_has_verified_counts(self):
         truth = self.case_truth("case_01_test1")
         findings = reference_findings(truth)
         reported = [findings[0], findings[0], {"category": "firewall_rules", "value": "unknown-rule"}]
         result = score_reference_findings(truth, reported)
-        self.assertEqual((result["tp"], result["fp"], result["fn"]), (1, 1, 11))
-        self.assertEqual(result["precision"], 0.5)
-        self.assertAlmostEqual(result["recall"], 1 / 12)
-        self.assertAlmostEqual(result["f1"], 1 / 7)
+        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (1, 1, 11))
+        self.assertEqual(result["unmatched_reported"], [{"category": "firewall_rules", "value": "unknown-rule"}])
+        self.assertEqual(result["by_category"]["firewall_rules"]["unmatched_reported_count"], 1)
 
     def test_case2_empty_report_is_not_perfect(self):
         result = score_reference_findings(self.case_truth("case_01_test2"), [])
-        self.assertEqual((result["tp"], result["fp"], result["fn"]), (0, 0, 16))
-        self.assertIsNone(result["precision"])
-        self.assertEqual(result["recall"], 0)
-        self.assertEqual(result["f1"], 0)
+        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (0, 0, 16))
 
     def test_invalid_reference_hash_rejected(self):
         truth = self.case_truth("case_01_test2")
         with self.assertRaises(ValueError):
             score_reference_findings(truth, [{"category": "file_hashes", "value": "not-a-hash"}])
+
+    def test_report_and_reference_hash_mismatch(self):
+        truth_file = Path(__file__).resolve().parents[2] / "data/scenarios/case_01_test1/case_01_truth.json"
+        script = Path(__file__).with_name("metric_scoring.py")
+        expected_sha = hashlib.sha256(truth_file.read_bytes()).hexdigest()
+        with tempfile.TemporaryDirectory() as directory:
+            report_path = Path(directory) / "report.json"
+            report = {"dataset": "case_01_test1", "reported_findings": [],
+                      "reference_sha256": expected_sha}
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            cmd = [sys.executable, str(script), "--case-truth", str(truth_file),
+                   "--report", str(report_path)]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            output = json.loads(result.stdout)
+            self.assertEqual(output["reference_sha256"], expected_sha)
+            self.assertEqual(output["rubric_version"], "draft-v0.2")
+            self.assertNotIn("f1", output["reference_matching"])
+            report["reference_sha256"] = "0" * 64
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("reference_sha256 does not match", result.stderr)
+            report["reference_sha256"] = expected_sha
+            report["dataset"] = "case_01_test2"
+            report_path.write_text(json.dumps(report), encoding="utf-8")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("dataset does not match", result.stderr)
+
+    def test_windows_reference_matching_is_casefold_exact(self):
+        truth = {"iocs": {"file_paths": [r"C:\Users\pgustavo\Desktop\launcher.vbs"]}}
+        exact = [{"category": "file_paths", "value": r"c:\users\pgustavo\desktop\LAUNCHER.VBS"}]
+        self.assertEqual(score_reference_findings(truth, exact)["matched_count"], 1)
+        slash_variant = [{"category": "file_paths", "value": "c:/users/pgustavo/desktop/launcher.vbs"}]
+        self.assertEqual(score_reference_findings(truth, slash_variant)["matched_count"], 0)
 
     @staticmethod
     def valid_trial():

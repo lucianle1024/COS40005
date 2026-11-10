@@ -24,10 +24,13 @@ The scorer's new `score_reference_findings()` uses the existing `iocs` category 
 
 - A reported finding has the shape `{"category": "file_hashes", "value": "..."}`.
 - Match `(category, value)` pairs exactly after trimming leading/trailing whitespace and case-folding for these Windows datasets. Duplicates are counted once.
+- Windows paths and command lines use case-folded exact matching only. We do not normalize slash styles, quoting, environment variables or command arguments; these may require manual adjudication.
 - File hashes must be 32, 40 or 64 hexadecimal characters (MD5, SHA-1 or SHA-256); MITRE IDs use `T####` or `T####.###`. No partial string matching or inferred equivalence is awarded.
 - IP and domain categories reuse the existing IP/domain normalization rules.
 - Report values outside the reference list count as unmatched, not automatically as malicious false positives. Manual review is required for ambiguous answers.
-- A self-match against the reference file must score 1.0; this is a unit-test invariant, not a study outcome.
+- A self-match against the reference file must produce zero unmatched and zero missing items; this is a unit-test invariant, not a study outcome.
+- The reference comparison outputs matched, unmatched-reported and missing-reference counts, plus category breakdowns and the unmatched values. These are not Precision, Recall or F1 scores until reference completeness and malicious labels are approved.
+- Each CLI result includes the dataset folder, draft rubric version and SHA-256 of the reference file. If a test report carries `reference_sha256`, the scorer rejects a mismatch.
 
 ### Available reference categories
 
