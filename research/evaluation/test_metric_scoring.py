@@ -1,8 +1,12 @@
 """Synthetic unit tests for the draft evaluation scorer."""
 
+import json
 import unittest
+from pathlib import Path
 
-from metric_scoring import evaluate_trial, score_iocs
+from metric_scoring import (
+    evaluate_trial, reference_findings, score_iocs, score_reference_findings,
+)
 
 
 class MetricScoringTests(unittest.TestCase):
@@ -82,6 +86,50 @@ class MetricScoringTests(unittest.TestCase):
         trial["events"].append({"event_id": "evt-3", "event_type": "submit", "elapsed_ms": 100000})
         with self.assertRaises(ValueError):
             evaluate_trial(trial)
+
+    @staticmethod
+    def case_truth(dataset):
+        path = Path(__file__).resolve().parents[2] / "data/scenarios" / dataset / "case_01_truth.json"
+        return json.loads(path.read_text(encoding="utf-8"))
+
+    def test_case1_reference_matches_real_truth(self):
+        truth = self.case_truth("case_01_test1")
+        findings = reference_findings(truth)
+        self.assertEqual((len(truth["iocs"]["suspicious_processes"]), len(findings)), (3, 12))
+        result = score_reference_findings(truth, findings)
+        self.assertEqual((result["tp"], result["fp"], result["fn"]), (12, 0, 0))
+        self.assertEqual(result["f1"], 1.0)  # Self-check only, not participant performance.
+
+    def test_case2_reference_matches_real_truth(self):
+        truth = self.case_truth("case_01_test2")
+        findings = reference_findings(truth)
+        self.assertEqual(len(findings), 16)
+        self.assertEqual(sorted(map(len, truth["iocs"]["file_hashes"])), [32, 40, 64])
+        normalized = [{**item, "value": item["value"].swapcase()} for item in findings]
+        result = score_reference_findings(truth, normalized)
+        self.assertEqual((result["tp"], result["fp"], result["fn"]), (16, 0, 0))
+
+    def test_case1_partial_report_has_verified_counts(self):
+        truth = self.case_truth("case_01_test1")
+        findings = reference_findings(truth)
+        reported = [findings[0], findings[0], {"category": "firewall_rules", "value": "unknown-rule"}]
+        result = score_reference_findings(truth, reported)
+        self.assertEqual((result["tp"], result["fp"], result["fn"]), (1, 1, 11))
+        self.assertEqual(result["precision"], 0.5)
+        self.assertAlmostEqual(result["recall"], 1 / 12)
+        self.assertAlmostEqual(result["f1"], 1 / 7)
+
+    def test_case2_empty_report_is_not_perfect(self):
+        result = score_reference_findings(self.case_truth("case_01_test2"), [])
+        self.assertEqual((result["tp"], result["fp"], result["fn"]), (0, 0, 16))
+        self.assertIsNone(result["precision"])
+        self.assertEqual(result["recall"], 0)
+        self.assertEqual(result["f1"], 0)
+
+    def test_invalid_reference_hash_rejected(self):
+        truth = self.case_truth("case_01_test2")
+        with self.assertRaises(ValueError):
+            score_reference_findings(truth, [{"category": "file_hashes", "value": "not-a-hash"}])
 
     @staticmethod
     def valid_trial():

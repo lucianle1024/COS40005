@@ -1,20 +1,37 @@
 # Research evaluation
 
-Sprint 1 draft for SCRUM-104 and SCRUM-105. This is researcher-side prototype code, not a backend integration or a participant result.
+Sprint 1/2 prototype for SCRUM-104 and SCRUM-105. I have added reference-file checks for the team's existing OTRF datasets without modifying the original logs or ground truth.
 
-- `case-01-scoring-rubric.md` - Proposed truth mapping, IOC matching rules and unresolved decisions.
-- `metric_scoring.py` - Example scorer for approved typed IOC tuples and valid trial events.
-- `test_metric_scoring.py` - Synthetic unit tests only.
-- `sample-trial.json` - Synthetic CLI example; not an approved Case 1 answer key.
+- `case-01-scoring-rubric.md` - Reference-category mapping, scoring definitions and approval gaps.
+- `metric_scoring.py` - Existing IOC/trial scorer plus separate category/value reference matching.
+- `test_metric_scoring.py` - Unit tests, including reads of both real dataset truth JSON files.
+- `sample-trial.json` - Synthetic CLI example, not a participant result.
 
-Run from the repository root:
+From repository root:
 
 ```powershell
 python -m unittest discover -s research/evaluation -p "test_metric_scoring.py" -v
+python research/evaluation/metric_scoring.py --case-truth data/scenarios/case_01_test1/case_01_truth.json
+python research/evaluation/metric_scoring.py --case-truth data/scenarios/case_01_test2/case_01_truth.json
 ```
 
-To score a test input, run `python research/evaluation/metric_scoring.py path/to/synthetic-trial.json`.
+To compare a **structured test report**, create a local file outside Git containing `dataset` and a `reported_findings` list:
 
-Do not place actual participant data or confidential ground-truth files in GitHub. The case owner must approve truth categories and the team must validate the telemetry contract before this code is integrated into the study. Record AI-assisted changes in the sprint AI Usage Log.
+```json
+{
+  "dataset": "case_01_test1",
+  "reported_findings": [
+    {"category": "firewall_rules", "value": "python.exe"}
+  ]
+}
+```
 
-The AI-only runner (`run_ai_only.py`) and results exporter (`export_results.py`) belong to later integration and are not included here.
+Run:
+
+```powershell
+python research/evaluation/metric_scoring.py --case-truth data/scenarios/case_01_test1/case_01_truth.json --report path/to/local-report.json
+```
+
+The output compares typed findings against the existing reference **only**; it does not establish malicious IOC accuracy or human study results. A raw final report currently provides reasoning and evidence IDs, not `reported_findings`, so the UI-to-evaluation adapter and actual telemetry remain future integration work. Use the original trial scorer with `python research/evaluation/metric_scoring.py research/evaluation/sample-trial.json` for the existing synthetic timing example.
+
+The case owner must approve scored malicious/contextual categories before participant evaluation. Keep actual participant results and confidential keys out of GitHub. Record AI-assisted work in the course AI Usage Log.

@@ -1,15 +1,48 @@
-# Case 1 Scoring Rules - Draft v0.1
+# Case 1 Scoring Rules - Draft v0.2
 
 Owner: Nguyen Huyen Minh Nhat
 Jira: SCRUM-104, linked to SCRUM-45 and SCRUM-53
-Date: 2026-11-05
+Date: 2026-11-10
 Status: Draft. The case owner must approve the ground-truth categories before this rubric is frozen.
 
-## Case identity issue
+## Dataset identity and scope
 
-The frontend demo is `case-01` v0.1, an invoice-phishing case. The current `data/scenarios/case_01/` folder is `case_01` v1.0, a PowerShell and firewall-tampering investigation. They do not share a consistent ground truth. We must not score one against the other.
+The team already has two OTRF datasets in the repository. I will use these files directly, without creating or changing the original evidence:
 
-Huy's existing `case_01_truth.json` contains `root_cause`, `iocs` grouped by type, and `mitre_techniques`. It should be reviewed as a proposed source of truth, not automatically treated as an approved list of malicious indicators. The ground truth and trap labels must not be served in participant-facing assets or the AI prompt.
+| Dataset directory | Reference content | Reference entries |
+|---|---|---|
+| `data/scenarios/case_01_test1/` | PowerShell execution and firewall tampering | 8 grouped findings and 4 MITRE techniques |
+| `data/scenarios/case_01_test2/` | VBScript stager and obfuscated PowerShell execution | 12 grouped findings and 4 MITRE techniques |
+
+Both truth files use `scenario_id: case_01`, so the dataset directory must also be recorded to prevent accidental cross-scoring. Neither truth file specifies a `scenario_version`; I will not invent one. The separate `src/frontend/src/fixtures/phishing-case.json` is a synthetic UI demo (`case-01`, v0.1), not either of these OTRF datasets. Jira still calls Case 1 Phishing; the team should align that wording with the chosen datasets.
+
+These lists are the group's *existing reference findings*, not an approved malicious-IOC whitelist. Items such as `explorer.exe`, host names and accounts may be important context without being malicious. A match to these reference lists must not be presented as malicious IOC accuracy or participant performance until Huy reviews the scored categories.
+
+## Reference matching for technical tests
+
+The scorer's new `score_reference_findings()` uses the existing `iocs` category names and a separate `mitre_techniques` category. This is a dataset-compatibility check, distinct from `score_iocs()` and the primary IOC F1 measure.
+
+- A reported finding has the shape `{"category": "file_hashes", "value": "..."}`.
+- Match `(category, value)` pairs exactly after trimming leading/trailing whitespace and case-folding for these Windows datasets. Duplicates are counted once.
+- File hashes must be 32, 40 or 64 hexadecimal characters (MD5, SHA-1 or SHA-256); MITRE IDs use `T####` or `T####.###`. No partial string matching or inferred equivalence is awarded.
+- IP and domain categories reuse the existing IP/domain normalization rules.
+- Report values outside the reference list count as unmatched, not automatically as malicious false positives. Manual review is required for ambiguous answers.
+- A self-match against the reference file must score 1.0; this is a unit-test invariant, not a study outcome.
+
+### Available reference categories
+
+| Test 1 category | Count | Test 2 category | Count |
+|---|---:|---|---:|
+| `suspicious_processes` | 3 | `suspicious_processes` | 1 |
+| `target_binaries` | 1 | `process_names` | 2 |
+| `accounts_involved` | 2 | `file_paths` | 2 |
+| `firewall_rules` | 2 | `file_hashes` | 3 |
+| `network_ips`, `domains` | 0 | `user_accounts` | 1 |
+| - | - | `target_hosts` | 1 |
+| - | - | `registry_keys_modified` | 2 |
+| `mitre_techniques` | 4 | `mitre_techniques` | 4 |
+
+Root cause remains a separately reviewed outcome; it is not automatically scored as a finding string. The current UI saves classification, reasoning and evidence IDs rather than typed findings, so no participant IOC F1 can be derived from that payload alone.
 
 ## Primary IOC scoring
 
@@ -47,18 +80,12 @@ Result: TP = 2, FP = 1, FN = 1, Precision = 0.667, Recall = 0.667, F1 = 0.667 (r
 - AI hallucination/contamination: Compare claims actually displayed to Condition C participants against final retained findings. An Accept click alone is insufficient evidence of contamination.
 - Condition B is an automated baseline, not a human participant for paired A vs C statistics.
 
-## Current truth-file mapping to review
+## Research use boundary
 
-| Current `case_01_truth.json` field | Proposed treatment |
-|---|---|
-| `iocs.network_ips` | Candidate `ip` IOC set after approval |
-| `iocs.domains` | Candidate `domain` IOC set after approval |
-| `iocs.suspicious_processes` | Review individual path/command items; not automatically IOC |
-| `iocs.target_binaries` | Supporting evidence or separately scored binary indicators if approved |
-| `iocs.accounts_involved` | Supporting attribution, unless case owner defines malicious accounts |
-| `iocs.firewall_rules` | Supporting or separately scored configuration artifacts |
-| `mitre_techniques` | Separate technique scoring |
-| `root_cause` | Separate qualitative/categorical assessment |
+- `score_iocs()` remains the primary typed IOC utility. Its existing IP/domain/MD5/SHA-256 validation and synthetic timing tests are unchanged.
+- `score_reference_findings()` verifies whether structured reports match the team's two existing reference files. It does **not** label every referenced process, account, or rule as malicious.
+- For participant outcomes, first confirm which reference categories represent scored malicious findings, then supply typed `reported_iocs` and actual `submit`/`triage_marked` events. Otherwise mark those measurements as unavailable rather than recording a zero or a fabricated F1.
+- Do not expose reference or answer-key files through the participant UI, API or AI prompt.
 
 ## Minimum scoring input
 
@@ -70,8 +97,10 @@ Result: TP = 2, FP = 1, FN = 1, Precision = 0.667, Recall = 0.667, F1 = 0.667 (r
 
 ## Review checklist
 
-- [ ] Huy selects the canonical Case 1 and confirms malicious versus benign artifacts.
+- [x] I mapped both existing OTRF reference files and verified their category counts.
+- [ ] Huy confirms which reference entries represent scored malicious versus contextual findings.
 - [ ] Huy and Nhat approve the exact matching/partial-credit policy and version it.
 - [ ] Tin/Phi confirm the final-report format includes typed IOCs and stable evidence IDs.
-- [ ] Nhat runs synthetic scorer tests, pilots one full sample and freezes the rubric before collecting human data.
+- [x] I ran local unit tests against both reference JSON files (synthetic report predictions only).
+- [ ] Nhat pilots a real structured submission and freezes the rubric before collecting human data.
 - [ ] Team records approval in Jira SCRUM-104 and links the reviewed version.
