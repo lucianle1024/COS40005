@@ -1,88 +1,91 @@
-# Case 1 Telemetry Event Contract - Draft v0.1
+# Case 1 Telemetry Event Contract - Working v1.0
 
 Owner: Nguyen Huyen Minh Nhat
-Jira: SCRUM-102
-Date: 2026-11-05
-Status: Draft for review by Tin, Phi and Huy. Not an approved API contract.
+Jira: SCRUM-102 (schema basis: SCRUM-49; persistence: SCRUM-103)
+Date: 2026-11-10
+Status: Team-agreed working baseline using the current Case 1 implementation. Revise together if integration exposes a problem; this document does not imply telemetry is already deployed.
 
-## Purpose and scope
+## Case identity and existing implementation
 
-I am defining the event records needed to measure the human-only (A) and human + AI (C) investigations. This document extends the 10-table SQLite design from SCRUM-49. Tin owns event emission from the React workbench (SCRUM-100). Phi owns routing, authorization and API integration. My part covers event definitions, measurement requirements, persistence validation and reproducibility.
+- Use the currently connected OTRF dataset `data/scenarios/case_01/` (VBScript stager and obfuscated PowerShell), `case_id: case_01`, `case_version: 1.0`, and evidence IDs `EVENT-1`, `EVENT-2`, etc. The session API currently uses these identifiers, but its evidence file path still references deleted `case_01_test1` and must be updated separately.
+- Conditions: A = Human-only; B = AI-only; C = Human + AI. The server assigns the mode at session creation; clients must not override it in telemetry.
+- The standalone synthetic phishing fixture (`case-01`, v0.1) is a different demo and must not be mixed with these trials. The new dataset truth file does not itself declare `case_version`; v1.0 is the current session API version, not a verified OTRF dataset version. The earlier `case_01_test1` and `case_01_test2` directories were removed during the dataset consolidation; use the current `case_01` directory only.
+- Existing routes: `GET /sessions/case-01`, `POST /sessions`, `GET /sessions/{session_id}`, `POST /sessions/{session_id}/draft`, `POST /sessions/{session_id}/finalise`, `GET /sessions/{session_id}/advice` (C), and `POST /sessions/{session_id}/complete-ai` (B).
+- `POST /sessions` returns the server-generated `id` (use this as `session_id`), `started_at` and mode. A repeated `attempt_key` can reopen the same session. The existing SQLite `investigation_sessions` table persists session lifecycle and report findings. **Known integration blocker (2026-11-10):** `src/backend/app/api/sessions.py` and `tests/test_health.py` still reference deleted `case_01_test1`; six baseline tests fail with `FileNotFoundError`. Fix the backend loader and dataset-specific test expectations in a separate coordinated change before any end-to-end run.
 
-The present frontend uses `case-01` version `0.1` (synthetic invoice phishing); the new backend dataset uses `case_01` version `1.0` (PowerShell/firewall activity). These are different cases, not interchangeable IDs. We need Huy and Tin to approve one canonical Case 1 and its version before integrated testing.
+## Event envelope v1.0
 
-## Proposed event envelope
-
-The server should assign and validate the investigation session and condition. For a client event, the proposed record is:
+Every telemetry event has the following fields:
 
 ```json
 {
   "event_id": "evt-demo-001",
-  "session_id": "session-demo-001",
+  "session_id": "00000000000000000000000000000001",
   "event_type": "evidence_view",
-  "occurred_at_utc": "2026-11-05T08:00:12Z",
+  "occurred_at_utc": "2026-11-10T08:00:12Z",
   "elapsed_ms": 12000,
-  "ui_target": "evidence:E02",
-  "metadata": {"evidence_id": "E02"}
+  "ui_target": "evidence:EVENT-39",
+  "metadata": {"evidence_id": "EVENT-39"}
 }
 ```
 
-- `event_id`: Unique opaque event identifier. Replays with the same ID must not create a second event.
-- `session_id`: Server-issued identifier for one trial. Resolve condition, participant pseudonym, scenario ID and version from this session, not from untrusted event metadata.
-- `event_type`: One of the names in the catalog below.
-- `occurred_at_utc`: UTC timestamp in ISO 8601 format with a `Z` suffix. Useful for diagnostics, not the sole duration source.
-- `elapsed_ms`: Nonnegative elapsed active investigation time since the session began, excluding agreed pauses. The frontend timer is provisional until server-side validation is agreed.
-- `ui_target`: Stable target name, not the visible element text.
-- `metadata`: Small, type-specific fields only. Do not store raw logs, free-text searches, credentials or personal data here.
+| Field | Type / rule |
+|---|---|
+| `event_id` | Required nonempty unique opaque string (up to 128 characters). Repeated identical ID and payload is an idempotent retry; conflicting replay is rejected. |
+| `session_id` | Required nonempty ID (up to 128 characters) returned by the server. Validate existence and active session for client interactions. |
+| `event_type` | Required, one of the exact values in the catalog below. |
+| `occurred_at_utc` | Required ISO 8601 UTC timestamp with `Z` suffix; for diagnostics and ordering checks. |
+| `elapsed_ms` | Required nonnegative integer (not float or Boolean); active investigation time since session start, excluding agreed pauses. Not yet a validated research measure. |
+| `ui_target` | Required string or `null` identifying a stable UI target, not visible text. |
+| `metadata` | Required JSON object with the fields listed below; no free-text searches, credentials, evidence logs or participant PII. |
+
+Scenario, version, mode and participant pseudonym are resolved from the **server session**, not supplied as trusted event fields. Example session IDs are synthetic, not valid IDs on another machine.
 
 ## Event catalog
 
-| Event | Required metadata | When recorded |
-|---|---|---|
-| `click` | `control_id` | Meaningful navigation or controls, not every keystroke |
-| `search` | `result_count` | A search is applied; do not log raw search text |
-| `filter` | `filter_id`, `result_count` | A filter is applied or cleared |
-| `evidence_view` | `evidence_id` | A source record is opened, not when it is merely listed |
-| `report_edit` | `section_id` | A report section is changed; no report text in event metadata |
-| `triage_marked` | `classification` | Analyst records first triage classification |
-| `pause` | none | Approved pause starts |
-| `resume` | none | Approved pause ends |
-| `ai_suggestion_shown` | `suggestion_id` | Suggestion is actually displayed to the participant, not merely fetched |
-| `submit` | `report_id` | Backend has accepted and persisted final report |
+| Event | Origin | Required `metadata` | Recording rule |
+|---|---|---|---|
+| `click` | Client A/C | `control_id`: nonempty string | Meaningful controls, not every keystroke |
+| `search` | Client A/C | `result_count`: nonnegative integer | Search applied; never store query text |
+| `filter` | Client A/C | `filter_id`: string, `result_count`: nonnegative integer | Filter applied or cleared |
+| `evidence_view` | Client A/C | `evidence_id`: existing `EVENT-*` ID | Evidence opened, not merely listed |
+| `report_edit` | Client A/C | `section_id`: nonempty string | Report section changed; never store its text here |
+| `triage_marked` | Client A/C | `classification`: `undetermined`, `benign`, `suspicious` or `malicious` | Triage explicitly recorded |
+| `pause` | Client A/C | None | Approved pause begins |
+| `resume` | Client A/C | None | Approved pause ends |
+| `ai_suggestion_shown` | Client C only | `suggestion_id`: ID from case advice | Suggestion actually displayed, not merely fetched |
+| `submit` | Server A/C | `report_id`: nonempty string | Only after successful final report persistence |
 
-Review decisions are stored in `suggestion_decisions` with `session_id`, `suggestion_id`, `decision` (accept/modify/reject) and a timestamp. Revised text belongs in its approved review record, not in the generic telemetry event. Exposure is stored in `suggestion_exposures` only after `ai_suggestion_shown` is persisted. Opening a record is distinct from citing it in the final report.
+- Session creation (`POST /sessions`) is the lifecycle start, not a synthetic client `start` event. The server's `started_at` is authoritative for when the session was opened.
+- Current finalisation route is `POST /sessions/{session_id}/finalise`; a separate report ID does **not** exist yet. For the current one-final-report-per-session design, set `submit.metadata.report_id` to the existing `session_id` as a stable report key. Do not invent a separate ID.
+- For B, `POST /sessions/{session_id}/complete-ai` saves the automated outcome. Record AI runs separately in SCRUM-103; do not fabricate participant clicks or triage events.
+- In C, review decisions (`accept`, `modify`, `reject`) are separate records keyed to session and suggestion ID. Exposure requires a recorded `ai_suggestion_shown`, and clicking Accept alone does not establish that the final report retained a claim.
 
-## Validation and experiment rules
+## Validation, timing and persistence
 
-- A - Human-only: No AI suggestions, exposures or review decisions.
-- B - AI-only: No participant interactions. Record automated model runs and their outputs in the AI tables, not fabricated UI events.
-- C - Human + AI: Record real suggestion exposure and decisions separately. An Accept click does not prove the final report retained a false claim.
-- Check the session, event type, referenced evidence/suggestion, clock order and condition before committing an event.
-- Deduplicate by `event_id`; acknowledge only persisted events. Retried requests must be idempotent.
-- `submit` is written after successful final-report persistence. A frontend click without server acknowledgement is not a successful submission.
-- Do not expose ground truth, participant identity, confidential log content or provider keys to the browser.
-- Use stable event names and case versions. Changes after piloting require a contract version bump.
+- Reject missing fields, unknown event types, invalid UTC times, negative/non-integer `elapsed_ms`, invalid category metadata, nonexistent session or evidence reference and condition-incompatible events. Limit identifier and metadata string fields to 128 characters.
+- De-duplicate by globally unique `event_id`. Same ID + same content is acknowledged once; same ID + different content is rejected. Never rewrite the original record on replay.
+- A must never expose AI suggestions or decisions. B has no participant UI telemetry. C can record advice exposure and review decisions.
+- A valid `submit` must be written by the server **only after** its final report has been accepted. When integrated, the report and submit event should share a transaction; failed finalisation must not create a submit event.
+- First-triage time = earliest valid `triage_marked.elapsed_ms`; submission duration = accepted `submit.elapsed_ms / 1000`. If either event is absent, report that measurement as missing, not zero.
+- Pause/resume behaviour, client clock checks and recovery after refresh are not implemented or validated in the current frontend. Do **not** use elapsed time for participant analysis until those checks pass; the backend `completed_at` alone is not a substitute for active time.
+- Use the existing SQLite database file and `investigation_sessions` table. SCRUM-103 adds telemetry tables/storage rather than replacing session storage. Do not expose ground-truth files through the participant app or telemetry endpoint.
 
-## Timing rules to confirm
+## Integration boundary and responsibilities
 
-- The trial starts when the server records a valid session start, not when the page first loads.
-- First triage time is the earliest valid `triage_marked.elapsed_ms`.
-- Submission duration is the accepted `submit.elapsed_ms`. Define pause/resume and reload recovery with Tin and Phi before using it as an experimental metric.
-- If a valid final submit event does not exist, duration is missing, not zero.
+- **Already implemented:** FastAPI session endpoints and SQLite session persistence; React saves drafts/final reports to those endpoints and displays advice in C.
+- **Not implemented on `main`:** `POST /events`, server-created `submit` telemetry, persisted AI suggestion decisions, and frontend event emission. The JSON examples illustrate the proposed contract, **not** successful API calls.
+- Tin: emit A/C UI events only when the corresponding action occurs, using the current session ID and stable evidence/advice identifiers.
+- Phi: validate and persist event requests, ensure server-side submit is tied to successful finalisation, and reject invalid conditions/replays.
+- Nhat: maintain versioned contract, SQLite event storage/migrations (SCRUM-103), tests and research measurement definitions.
+- Huy: maintain the existing dataset/reference; changes to the canonical research dataset/version require coordination before any experimental comparison.
 
-## Proposed API boundary (not implemented)
+## Review and change control
 
-- `POST /sessions`: Server assigns `session_id`, condition, scenario/version and start time.
-- `POST /events`: Validate, persist and acknowledge an event. Replay of the same `event_id` is idempotent.
-- `POST /reports/{session_id}/finalise`: Persist final report, then create an accepted `submit` record in the same transaction.
-- Response errors must distinguish invalid data, unauthorized condition and temporary storage failures. These routes are proposals for Phi to review, not existing FastAPI endpoints.
+- [x] Checked backend/frontend interfaces and current dataset paths on `main`; documented the stale backend path as an integration blocker.
+- [x] Adopted the current `case_01` dataset and the backend's `case_01` v1.0 session identifier as the working contract baseline, per team direction.
+- [x] Specified exact event fields, catalog, validation and synthetic JSON examples.
+- [ ] Implement and test `POST /events`, active-session enforcement, capture timing, suggestion decisions and atomic finalisation with Tin/Phi (SCRUM-103/integration).
+- [ ] Re-review contract and bump its version if the implementation or experiment protocol changes. Record the agreed revision in Jira.
 
-## Review checklist
-
-- [ ] Huy confirms Case 1 canonical ID, version, evidence IDs and ground truth custody.
-- [ ] Tin confirms which UI actions genuinely emit each event and what is measurable.
-- [ ] Phi confirms session ownership, API shapes, idempotency and server timing checks.
-- [ ] Nhat checks SQLite mapping against the original SCRUM-49 SQL source and updates this contract.
-- [ ] Team approves v1.0 before SCRUM-103 persistence integration or participant piloting.
-
-Synthetic payload examples: `telemetry-event-examples.json`.
+Sample payloads: `telemetry-event-examples.json`. This contract is an implementation baseline, not proof that end-to-end telemetry or research timing has been validated.
