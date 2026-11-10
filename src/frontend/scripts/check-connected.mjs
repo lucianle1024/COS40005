@@ -10,7 +10,7 @@ try {
   const first = await context.newPage();
   await first.goto(baseUrl);
   await first.getByRole('link', { name: 'Human only', exact: true }).click();
-  await first.getByText('2395 records', { exact: true }).waitFor();
+  await first.getByText('350 records', { exact: true }).waitFor();
 
   const records = first.getByRole('region', { name: 'Evidence records' });
   const layout = await records.evaluate((list) => {
@@ -24,24 +24,24 @@ try {
   });
   assert.deepEqual(layout, { scrolls: true, inspectorAccessible: true });
   await first.getByRole('button', { name: 'Next', exact: true }).click();
-  await first.getByText('Page 2 of 48', { exact: true }).waitFor();
+  await first.getByText('Page 2 of 7', { exact: true }).waitFor();
 
   const search = first.getByRole('searchbox', { name: 'Search evidence' });
   await search.fill('NO-MATCH-SCRUM-91');
   await first.getByText('No records match your filters.', { exact: true }).waitFor();
   await first.getByRole('combobox', { name: 'Record type' }).selectOption('Email');
   await first.getByRole('button', { name: 'Clear filters' }).click();
-  await first.getByText('Page 1 of 48', { exact: true }).waitFor();
+  await first.getByText('Page 1 of 7', { exact: true }).waitFor();
   await search.fill('EVENT-39');
   await first.getByRole('button', { name: /^EVENT-39 Windows Event/ }).click();
   await first
     .getByRole('button', { name: 'Cite EVENT-39 as supporting evidence', exact: true })
     .click();
   const original = first.getByRole('region', { name: 'Original record' });
-  await original.getByRole('heading', { name: 'Windows Event 4946' }).waitFor();
+  await original.getByRole('heading', { name: 'Windows Event 7' }).waitFor();
   assert.match(
     await original.getByRole('region', { name: 'Raw text for EVENT-39' }).textContent(),
-    /4946/,
+    /\b7\b/,
   );
   const reasoning = first.getByRole('textbox', { name: 'Your reasoning' });
   await reasoning.fill('Initial Case 1 draft');
@@ -103,7 +103,7 @@ try {
   await retry.getByRole('heading', { name: 'Case unavailable' }).waitFor();
   unavailable = false;
   await retry.getByRole('button', { name: 'Try again' }).click();
-  await retry.getByText('2395 records', { exact: true }).waitFor();
+  await retry.getByText('350 records', { exact: true }).waitFor();
   const combined = await context.newPage();
   await combined.goto(baseUrl);
   await combined.route('**/sessions/*/advice', (route) => route.abort());
@@ -115,7 +115,7 @@ try {
   const advice = combined.getByRole('region', { name: 'AI advice' });
   await advice.getByText(/Fixed-rule advice/).waitFor();
   const claims = advice.getByRole('article');
-  assert.equal(await claims.count(), 4);
+  assert.equal(await claims.count(), 2);
   for (const claim of await claims.all()) {
     for (const source of await claim
       .getByRole('button', { name: /^Inspect source EVENT-/ })
@@ -125,16 +125,16 @@ try {
       await combined.getByRole('region', { name: 'Raw text for ' + id, exact: true }).waitFor();
     }
   }
-  const firewall = advice.getByRole('article', { name: 'Check for firewall rule changes' });
-  await firewall.getByRole('button', { name: 'Reject', exact: true }).click();
-  assert.equal(await firewall.getByRole('button', { name: 'Add to findings' }).count(), 0);
-  await firewall.getByRole('button', { name: 'Accept', exact: true }).click();
+  const registry = advice.getByRole('article', { name: 'Review the registry references' });
+  await registry.getByRole('button', { name: 'Reject', exact: true }).click();
+  assert.equal(await registry.getByRole('button', { name: 'Add to findings' }).count(), 0);
+  await registry.getByRole('button', { name: 'Accept', exact: true }).click();
   assert.equal(await combined.getByRole('textbox', { name: 'Your reasoning' }).inputValue(), '');
-  await firewall.getByRole('button', { name: 'Revise', exact: true }).click();
+  await registry.getByRole('button', { name: 'Revise', exact: true }).click();
   await firewall
-    .getByRole('textbox', { name: 'Your revision for firewall' })
-    .fill('Checked firewall evidence.');
-  await firewall.getByRole('button', { name: 'Add to findings' }).click();
+    .getByRole('textbox', { name: 'Your revision for registry' })
+    .fill('Checked registry evidence.');
+  await registry.getByRole('button', { name: 'Add to findings' }).click();
   await combined.getByRole('button', { name: 'Save draft' }).click();
   await combined.locator('.save-status').getByText('Saved on server', { exact: true }).waitFor();
   assert.equal(
@@ -149,10 +149,10 @@ try {
   await combined.reload();
   assert.equal(
     await combined.getByRole('textbox', { name: 'Your reasoning' }).inputValue(),
-    'Checked firewall evidence.',
+    'Checked registry evidence.',
   );
   assert.equal(
-    await firewall.getByRole('button', { name: 'Accept', exact: true }).isEnabled(),
+    await registry.getByRole('button', { name: 'Accept', exact: true }).isEnabled(),
     false,
   );
 
