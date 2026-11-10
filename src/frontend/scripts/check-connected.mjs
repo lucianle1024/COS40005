@@ -131,14 +131,14 @@ try {
   await registry.getByRole('button', { name: 'Accept', exact: true }).click();
   assert.equal(await combined.getByRole('textbox', { name: 'Your reasoning' }).inputValue(), '');
   await registry.getByRole('button', { name: 'Revise', exact: true }).click();
-  await firewall
+  await registry
     .getByRole('textbox', { name: 'Your revision for registry' })
     .fill('Checked registry evidence.');
   await registry.getByRole('button', { name: 'Add to findings' }).click();
   await combined.getByRole('button', { name: 'Save draft' }).click();
   await combined.locator('.save-status').getByText('Saved on server', { exact: true }).waitFor();
   assert.equal(
-    await firewall
+    await registry
       .getByRole('button', { name: 'Revise', exact: true })
       .getAttribute('aria-pressed'),
     'true',
