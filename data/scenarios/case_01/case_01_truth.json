@@ -1,31 +1,62 @@
 {
   "scenario_id": "case_01",
-  "name": "PowerShell Execution and Firewall Tampering for Python Listener",
-  "root_cause": "An elevated PowerShell process executed netsh.exe to create an inbound Windows Firewall rule allowing incoming TCP traffic to python.exe, following an intentional Security audit log clearance.",
+  "name": "VBScript Stager and Obfuscated PowerShell Execution (Empire Launcher)",
+  "root_cause": "User 'pgustavo' executed a malicious VBScript stager ('launcher.vbs') from the Desktop via Windows Based Script Host (wscript.exe), initiated by explorer.exe. The script loaded scripting and cryptographic engines (vbscript.dll, amsi.dll, MpOAV.dll) to unpack and execute an in-memory obfuscated PowerShell payload.",
   "iocs": {
     "suspicious_processes": [
-      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
-      "C:\\Windows\\System32\\netsh.exe",
-      "\"C:\\windows\\system32\\netsh.exe\" advfirewall firewall add rule name=python.exe dir=in action=allow description=python.exe program=C:\\users\\wardog\\appdata\\local\\programs\\python\\python39\\python.exe enable=yes localport=any protocol=tcp remoteip=any"
+      "\"C:\\windows\\System32\\WScript.exe\" \"C:\\Users\\pgustavo\\Desktop\\launcher.vbs\""
     ],
-    "target_binaries": [
-      "C:\\users\\wardog\\appdata\\local\\programs\\python\\python39\\python.exe"
+    "process_names": [
+      "wscript.exe",
+      "explorer.exe",
+      "powershell.exe"
     ],
-    "accounts_involved": [
-      "wardog",
-      "WORKSTATION5\\wardog"
+    "file_paths": [
+      "C:\\Users\\pgustavo\\Desktop\\launcher.vbs",
+      "C:\\Users\\pgustavo\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\launcher.lnk"
     ],
-    "firewall_rules": [
-      "python.exe",
-      "{A6A35CAD-6E59-4C6C-ABAA-4F169DCF531B}"
+    "file_hashes": [
+      "F42201B5D890A96302F90102B16D7C31CFCC3B67C801BA7C6F6BE223F16D7011",
+      "563EDAE37876138FDFF47F3E7A9A78FD",
+      "542C46C652DDEFC87414213A8BEA0C65DD0377A9"
     ],
-    "network_ips": [],
-    "domains": []
+    "user_accounts": [
+      "THESHIRE\\pgustavo"
+    ],
+    "target_hosts": [
+      "WORKSTATION5.theshire.local"
+    ],
+    "registry_keys_modified": [
+      "HKU\\S-1-5-21-2079883792-3656946353-945924832-1104\\Software\\Microsoft\\Windows Script Host\\Settings",
+      "HKU\\S-1-5-21-2079883792-3656946353-945924832-1104\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\.vbs"
+    ]
   },
+  "truth_iocs": [
+    {
+      "type": "sha256",
+      "value": "F42201B5D890A96302F90102B16D7C31CFCC3B67C801BA7C6F6BE223F16D7011"
+    },
+    {
+      "type": "md5",
+      "value": "563EDAE37876138FDFF47F3E7A9A78FD"
+    }
+  ],
   "mitre_techniques": [
+    "T1059.005",
     "T1059.001",
-    "T1562.002",
-    "T1562.004",
-    "T1070.001"
+    "T1204.002",
+    "T1027"
+  ],
+  "benign_artifacts_for_noise": [
+    "C:\\Windows\\System32\\lsass.exe",
+    "C:\\Windows\\System32\\svchost.exe",
+    "C:\\Windows\\System32\\dns.exe"
+  ],
+  "remediation_actions": [
+    "Isolate host WORKSTATION5.theshire.local from the corporate network.",
+    "Terminate active wscript.exe and powershell.exe processes associated with the malicious PID tree.",
+    "Remove malicious stager artifact 'C:\\Users\\pgustavo\\Desktop\\launcher.vbs'.",
+    "Reset credentials and revoke active Kerberos/NTLM sessions for THESHIRE\\pgustavo.",
+    "Block identified stager hashes (SHA256: F42201B5... / MD5: 563EDAE3...) in endpoint detection policies."
   ]
 }

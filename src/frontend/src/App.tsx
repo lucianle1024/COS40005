@@ -1,4 +1,6 @@
+import { validateFindings } from './state/investigation';
 import { useState } from 'react';
+import type { ConnectedCaseLoader } from './api/sessions';
 import { loadDemoCase } from './api/demo-provider';
 import { useInvestigation } from './hooks/useInvestigation';
 import type { CaseLoader } from './hooks/useInvestigation';
@@ -14,12 +16,15 @@ import { BackendConnection } from './components/BackendConnection';
 
 export interface AppProps {
   loadCase?: CaseLoader;
+  loadConnectedCase?: ConnectedCaseLoader;
 }
 const defaultLoader = () => loadDemoCase('case-01');
-export default function App({ loadCase = defaultLoader }: AppProps) {
+export default function App({ loadCase = defaultLoader, loadConnectedCase }: AppProps) {
   const {
     data,
     draft,
+    busy,
+    startedAt,
     loading,
     loadFailed,
     activeId,
@@ -45,7 +50,8 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
     cancelNewDraft,
     createBlankDraft,
     cancelFinalisation,
-  } = useInvestigation(loadCase);
+  } = useInvestigation(loadCase, loadConnectedCase);
+  const connected = Boolean(loadConnectedCase);
   const [about, setAbout] = useState(false);
   const [brief, setBrief] = useState(false);
   function inspect(id: string) {
@@ -64,6 +70,7 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
         {data && draft && !loading && !loadFailed ? (
           <CaseHeader
             data={data}
+            connected={connected}
             mode={draft.mode}
             onModeChange={requestMode}
             onBrief={() => setBrief(true)}
@@ -76,17 +83,26 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
         )}
       </div>
       <main id="workspace" className="app-shell" tabIndex={-1}>
+        <nav className="case-navigation" aria-label="Case navigation">
+          <a className="secondary-button" href="/">
+            Back to case selection
+          </a>
+        </nav>
         {loading ? (
           <div className="page-state">
             <Icon name="record" size={28} />
             <h1>Opening the workspace</h1>
-            <p role="status">Loading synthetic case records...</p>
+            <p role="status">
+              {connected ? 'Opening Case 1 session…' : 'Loading synthetic case records...'}
+            </p>
           </div>
         ) : loadFailed ? (
           <div className="page-state">
             <h1>Case unavailable</h1>
             <p role="alert">
-              Could not load the demonstration case. No substitute data has been shown.
+              {connected
+                ? 'Could not open Case 1. Check that the session API is running, then try again.'
+                : 'Could not load the demonstration case. No substitute data has been shown.'}
             </p>
             <button type="button" className="primary-button" onClick={retry}>
               Try again
@@ -96,19 +112,20 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
           <>
             <div className="workspace-toolbar">
               <div>
-                <span className="badge badge-neutral">Frontend demo</span>
-                <p>
-                  {draft.mode === 'combined'
-                    ? 'Inspect evidence, review advice, make your decision.'
-                    : draft.mode === 'human'
-                      ? 'Investigate independently using the source records.'
-                      : 'Inspect the fixed automated assessment without analyst edits.'}
-                </p>
+                <span className="badge badge-neutral">
+                  {connected ? 'Case 1 session' : 'Frontend demo'}
+                </span>
+                {startedAt && (
+                  <span>
+                    Started{' '}
+                    <time dateTime={startedAt}>{new Date(startedAt).toLocaleTimeString()}</time>
+                  </span>
+                )}
               </div>
-              <BackendConnection />
+              {!connected && <BackendConnection />}
               {draft.mode === 'ai' && (
                 <span className="save-status" role="status">
-                  Read-only demo output
+                  {connected ? 'Finalised on server' : 'Read-only demo output'}
                 </span>
               )}
             </div>
@@ -128,12 +145,37 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
                 onOpen={openRecord}
                 selectedEvidenceIds={draft.evidenceIds}
                 onSelectionChange={(ids) => edit({ ...draft, evidenceIds: ids })}
-                readOnly={draft.mode === 'ai' || draft.status === 'finalised'}
+                readOnly={busy || draft.mode === 'ai' || draft.status === 'finalised'}
               />
               <section className="decision-pane" aria-label="Investigation decisions">
+                {draft.mode === 'combined' && (
+                  <div className="findings-shortcut">
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => {
+                        const heading = document.getElementById('findings-title');
+                        heading?.scrollIntoView({ block: 'start' });
+                        heading?.focus({ preventScroll: true });
+                      }}
+                    >
+                      Jump to findings
+                    </button>
+                    <span aria-live="polite">
+                      {draft.status === 'finalised'
+                        ? 'Finalised'
+                        : dirty
+                          ? 'Unsaved changes'
+                          : saveStatus}
+                    </span>
+                  </div>
+                )}
                 <div className="decision-scroll">
                   {draft.mode === 'combined' && (
                     <AdvicePanel
+                      compact
+                      connected={connected}
+                      busy={busy}
                       data={data}
                       draft={draft}
                       onInspect={inspect}
@@ -142,9 +184,10 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
                     />
                   )}
                   {draft.mode === 'ai' ? (
-                    <AutomatedOutput data={data} onInspect={inspect} />
+                    <AutomatedOutput data={data} onInspect={inspect} connected={connected} />
                   ) : (
                     <FindingsPanel
+                      busy={busy}
                       saveStatus={saveStatus}
                       dirty={dirty}
                       data={data}
@@ -155,6 +198,9 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
                 </div>
                 {draft.mode !== 'ai' && (
                   <FindingsActions
+                    ready={validateFindings(draft, data).length === 0}
+                    connected={connected}
+                    busy={busy}
                     locked={draft.status === 'finalised'}
                     onSave={() => persist()}
                     onFinalise={requestFinalisation}
@@ -163,13 +209,6 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
                 )}
               </section>
             </div>
-            <footer className="workspace-footer">
-              <span>
-                <Icon name="shield" size={14} />
-                Synthetic records. Inert indicators. No live investigation.
-              </span>
-              <span>Mode switching is for demonstration, not experimental trials.</span>
-            </footer>
           </>
         ) : null}
       </main>
@@ -190,36 +229,47 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
             </div>
             <div>
               <dt>Data</dt>
-              <dd>Synthetic records for the frontend demonstration</dd>
+              <dd>
+                {connected
+                  ? 'Case 1 Windows event records'
+                  : 'Synthetic records for the frontend demonstration'}
+              </dd>
             </div>
           </dl>
           <p className="brief-note">
-            Inspect the original records and explain what the evidence supports. Advice is fixed
-            demonstration text. Drafts stay in this browser; no activity or findings are sent to a
-            server.
+            {connected
+              ? 'Inspect the original records and explain what the evidence supports. Drafts and final reports are saved to the session API in SQLite.'
+              : 'Inspect the original records and explain what the evidence supports. Advice is fixed demonstration text. Demo drafts stay in this browser.'}
           </p>
         </Modal>
       )}
       <Modal
         open={about}
         onOpenChange={setAbout}
-        title="About this frontend demo"
+        title={connected ? 'About this case' : 'About this frontend demo'}
         description="A COS40005 interface increment for team review."
       >
-        <div className="about-copy">
+        {connected ? (
           <p>
-            Explore one synthetic case in human-only, AI-only and human plus AI modes. All AI advice
-            is fixed demonstration text.
+            Case 1 uses server-backed sessions and findings. Mode B runs a fixed-rule assessment.
+            Mode C shows fixed-rule advice. Reviews are kept while this workspace is open.
           </p>
-          <p>
-            Drafts are stored only in this browser. Clearing site data removes them. This frontend
-            does not connect to an AI service, collect participant telemetry or submit reports.
-          </p>
-          <p>
-            Phi's backend will provide actual case loading, persistence, mode enforcement and model
-            integration after the team agrees the contract.
-          </p>
-        </div>
+        ) : (
+          <div className="about-copy">
+            <p>
+              Explore one synthetic case in human-only, AI-only and human plus AI modes. All AI
+              advice is fixed demonstration text.
+            </p>
+            <p>
+              Drafts are stored only in this browser. Clearing site data removes them. This frontend
+              does not connect to an AI service, collect participant telemetry or submit reports.
+            </p>
+            <p>
+              Phi's backend will provide actual case loading, persistence, mode enforcement and
+              model integration after the team agrees the contract.
+            </p>
+          </div>
+        )}
         <div className="modal-actions">
           <button type="button" className="primary-button" onClick={() => setAbout(false)}>
             Back to workspace
@@ -257,7 +307,11 @@ export default function App({ loadCase = defaultLoader }: AppProps) {
           if (!open) cancelFinalisation();
         }}
         title="Finalise your findings?"
-        description="This saves a read-only copy in this browser. Nothing is submitted to a server. Review your reasoning and supporting records before confirming."
+        description={
+          connected
+            ? 'This submits your final report to the session API and locks it. Review your reasoning and citations before confirming.'
+            : 'This saves a read-only copy in this browser. Nothing is submitted to a server. Review your reasoning and supporting records before confirming.'
+        }
       >
         <div className="modal-actions">
           <button type="button" className="secondary-button" onClick={cancelFinalisation}>

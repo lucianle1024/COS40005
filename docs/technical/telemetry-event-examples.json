@@ -1,0 +1,71 @@
+{
+  "contract_version": "1.0-working",
+  "synthetic_only": true,
+  "case_id": "case_01",
+  "case_version": "1.0",
+  "dataset": "case_01",
+  "sample_session_modes": {
+    "00000000000000000000000000000001": "A",
+    "00000000000000000000000000000002": "C"
+  },
+  "server_only_event_types": [
+    "submit"
+  ],
+  "examples": [
+    {
+      "event_id": "evt-demo-001",
+      "session_id": "00000000000000000000000000000001",
+      "event_type": "evidence_view",
+      "occurred_at_utc": "2026-11-10T08:00:12Z",
+      "elapsed_ms": 12000,
+      "ui_target": "evidence:EVENT-39",
+      "metadata": {
+        "evidence_id": "EVENT-39"
+      }
+    },
+    {
+      "event_id": "evt-demo-002",
+      "session_id": "00000000000000000000000000000002",
+      "event_type": "evidence_view",
+      "occurred_at_utc": "2026-11-10T08:01:12Z",
+      "elapsed_ms": 12000,
+      "ui_target": "evidence:EVENT-39",
+      "metadata": {
+        "evidence_id": "EVENT-39"
+      }
+    },
+    {
+      "event_id": "evt-demo-003",
+      "session_id": "00000000000000000000000000000002",
+      "event_type": "ai_suggestion_shown",
+      "occurred_at_utc": "2026-11-10T08:01:15Z",
+      "elapsed_ms": 15000,
+      "ui_target": "advice:powershell",
+      "metadata": {
+        "suggestion_id": "powershell"
+      }
+    },
+    {
+      "event_id": "evt-demo-004",
+      "session_id": "00000000000000000000000000000002",
+      "event_type": "triage_marked",
+      "occurred_at_utc": "2026-11-10T08:01:45Z",
+      "elapsed_ms": 45000,
+      "ui_target": "report:classification",
+      "metadata": {
+        "classification": "suspicious"
+      }
+    },
+    {
+      "event_id": "evt-demo-005",
+      "session_id": "00000000000000000000000000000002",
+      "event_type": "submit",
+      "occurred_at_utc": "2026-11-10T08:04:00Z",
+      "elapsed_ms": 180000,
+      "ui_target": "report:finalise",
+      "metadata": {
+        "report_id": "00000000000000000000000000000002"
+      }
+    }
+  ]
+}

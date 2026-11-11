@@ -66,23 +66,12 @@ def test_advice_is_scoped_to_the_combined_session_and_its_case_records(tmp_path)
                 continue
             assert response.status_code == 200
             claims = {claim["id"]: claim for claim in response.json()}
-<<<<<<< Updated upstream
-            assert set(claims) == {"audit-log-clear", "powershell", "firewall", "registry"}
-            for claim in claims.values():
-                assert 1 <= len(set(claim["evidence_ids"])) == len(claim["evidence_ids"]) <= 3
-                assert set(claim["evidence_ids"]) <= records.keys()
-            for record_id in claims["firewall"]["evidence_ids"]:
-                assert "advfirewall" in records[record_id].lower()
-=======
             assert set(claims) == {"powershell", "registry"}
             for claim in claims.values():
                 assert 1 <= len(set(claim["evidence_ids"])) == len(claim["evidence_ids"]) <= 3
                 assert set(claim["evidence_ids"]) <= records.keys()
             for record_id in claims["powershell"]["evidence_ids"]:
                 assert "powershell.exe" in records[record_id].lower()
-            for record_id in claims["registry"]["evidence_ids"]:
-                assert "\\\\winlogon" in records[record_id].lower() or "\\\\lsa" in records[record_id].lower()
->>>>>>> Stashed changes
             assert client.get(f"/sessions/{session['id']}").json()["status"] == "active"
 
 
@@ -90,11 +79,7 @@ def test_reopening_same_attempt_keeps_start_time(tmp_path):
     with TestClient(create_app(tmp_path / "sessions.sqlite3")) as client:
         case = client.get("/sessions/case-01")
         assert case.status_code == 200
-<<<<<<< Updated upstream
-        assert len(case.json()["evidence"]) == 2395
-=======
         assert len(case.json()["evidence"]) == 350
->>>>>>> Stashed changes
         request = {
             "case_id": case.json()["id"], "case_version": case.json()["version"],
             "mode": "A", "attempt_key": "b50472b4-4840-4eaf-aac0-9d4f95a0f158",

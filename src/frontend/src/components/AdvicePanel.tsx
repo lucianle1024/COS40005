@@ -4,13 +4,25 @@ import { SourceLinks } from './SourceLinks';
 import { Icon } from './Icons';
 interface Props {
   data: InvestigationCase;
+  compact?: boolean;
+  connected?: boolean;
+  busy?: boolean;
   draft: InvestigationDraft;
   onInspect: (id: string) => void;
   onReview: (id: string, decision: ReviewDecision, revision?: string) => void;
   onAdd: (id: string) => void;
 }
-export function AdvicePanel({ data, draft, onInspect, onReview, onAdd }: Props) {
-  const readOnly = draft.status === 'finalised';
+export function AdvicePanel({
+  data,
+  draft,
+  onInspect,
+  onReview,
+  onAdd,
+  compact = false,
+  connected = false,
+  busy = false,
+}: Props) {
+  const readOnly = busy || draft.status === 'finalised';
   return (
     <section className="panel advice-panel" aria-labelledby="advice-title">
       <div className="panel-heading">
@@ -18,14 +30,24 @@ export function AdvicePanel({ data, draft, onInspect, onReview, onAdd }: Props) 
           <span className="step-number">02</span>
           <h2 id="advice-title">AI advice</h2>
         </div>
-        <Icon name="spark" size={18} />
+        {!compact && <Icon name="spark" size={18} />}
       </div>
       <div className="panel-body">
-        <p className="panel-intro">Check each claim against its supporting records.</p>
-        <div className="demo-note">
-          <span className="small-dot" />
-          Fixed demo advice, not a live model response.
-        </div>
+        {!compact && (
+          <p className="panel-intro">Check each claim against its supporting records.</p>
+        )}
+        {connected ? (
+          <p className="demo-note">
+            Fixed-rule advice. Review choices stay in this workspace until you close or reload it.
+          </p>
+        ) : compact ? (
+          <p className="demo-note">Sample AI advice</p>
+        ) : (
+          <div className="demo-note">
+            <span className="small-dot" />
+            Fixed demo advice, not a live model response.
+          </div>
+        )}
         {!data.advice.length && (
           <p className="empty-state">No AI advice is available for this case.</p>
         )}
@@ -61,7 +83,7 @@ export function AdvicePanel({ data, draft, onInspect, onReview, onAdd }: Props) 
                   ))}
                 </div>
               </div>
-              {review && review.decision !== 'reject' && (
+              {!compact && review && review.decision !== 'reject' && (
                 <p className="review-feedback">
                   {review.decision === 'accept'
                     ? 'Accepted. This records your response only.'
@@ -97,21 +119,26 @@ export function AdvicePanel({ data, draft, onInspect, onReview, onAdd }: Props) 
                   >
                     Add to findings <Icon name="arrow" size={14} />
                   </button>
-                  <span>
-                    Copies text and available source IDs. You can remove citations in Your findings;
-                    adding them does not verify the records.
-                  </span>
+                  {!compact && (
+                    <span>
+                      Copies text and available source IDs. You can remove citations in Your
+                      findings; adding them does not verify the records.
+                    </span>
+                  )}
                 </div>
               )}
             </article>
           );
         })}
-        <div className="advice-footnote">
-          <Icon name="shield" size={16} />
-          <p>
-            Review is separate from your final decision. Accepting advice does not submit findings.
-          </p>
-        </div>
+        {!compact && (
+          <div className="advice-footnote">
+            <Icon name="shield" size={16} />
+            <p>
+              Review is separate from your final decision. Accepting advice does not submit
+              findings.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );
