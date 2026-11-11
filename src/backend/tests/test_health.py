@@ -10,7 +10,7 @@ SCENARIO_PATH = (
     Path(__file__).resolve().parents[3]
     / "data"
     / "scenarios"
-    / "case_01_test1"
+    / "case_01"
     / "case_01_evidence.json"
 )
 
@@ -32,7 +32,7 @@ def load_case_one():
     return {
         "id": "case_01",
         "version": "1.0",
-        "title": "PowerShell and Firewall Tampering",
+        "title": "Endpoint Script Execution Alert",
         "evidence": records,
     }
 

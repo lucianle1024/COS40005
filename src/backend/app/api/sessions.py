@@ -14,7 +14,7 @@ from app.schemas.scenario import AdviceClaim, ScenarioInput
 
 CASE_ID = "case_01"
 CASE_VERSION = "1.0"
-CASE_PATH = Path(__file__).resolve().parents[4] / "data/scenarios/case_01_test1/case_01_evidence.json"
+CASE_PATH = Path(__file__).resolve().parents[4] / "data/scenarios/case_01/case_01_evidence.json"
 
 
 class OpenSession(BaseModel):
@@ -36,7 +36,7 @@ def create_router(database_path: Path) -> APIRouter:
 
     def load_case() -> ScenarioInput:
         return ScenarioInput(
-            id=CASE_ID, version=CASE_VERSION, title="PowerShell and Firewall Tampering",
+            id=CASE_ID, version=CASE_VERSION, title="Endpoint Script Execution Alert",
             evidence=[
                 {"id": f"EVENT-{index}", "type": "windows-event", "text": line}
                 for index, line in enumerate(CASE_PATH.read_text(encoding="utf-8-sig").splitlines(), 1)
