@@ -16,8 +16,8 @@ function CaseSelection() {
       <h1>Choose an investigation</h1>
       <section className="panel case-option" aria-labelledby="case-one-title">
         <span className="badge badge-neutral">Case 1</span>
-        <h2 id="case-one-title">PowerShell and Firewall Tampering</h2>
-        <p>Investigate 2,395 Windows event records. Select a mode to open your session.</p>
+        <h2 id="case-one-title">Endpoint Script Execution Alert</h2>
+        <p>Investigate 350 Windows event records. Select a mode to open your session.</p>
         <nav className="case-navigation-modes" aria-label="Case 1 modes">
           <a className="primary-button" href="?case=case_01&mode=A">
             Human only

@@ -7,11 +7,11 @@ Status: Team-agreed working baseline using the current Case 1 implementation. Re
 
 ## Case identity and existing implementation
 
-- Use the currently connected OTRF dataset `data/scenarios/case_01/` (VBScript stager and obfuscated PowerShell), `case_id: case_01`, `case_version: 1.0`, and evidence IDs `EVENT-1`, `EVENT-2`, etc. The session API currently uses these identifiers, but its evidence file path still references deleted `case_01_test1` and must be updated separately.
+- Use the currently connected OTRF dataset `data/scenarios/case_01/` (VBScript stager and obfuscated PowerShell), `case_id: case_01`, `case_version: 1.0`, and evidence IDs `EVENT-1`, `EVENT-2`, etc. The session API uses these identifiers and loads evidence from the canonical `case_01` path.
 - Conditions: A = Human-only; B = AI-only; C = Human + AI. The server assigns the mode at session creation; clients must not override it in telemetry.
 - The standalone synthetic phishing fixture (`case-01`, v0.1) is a different demo and must not be mixed with these trials. The new dataset truth file does not itself declare `case_version`; v1.0 is the current session API version, not a verified OTRF dataset version. The earlier `case_01_test1` and `case_01_test2` directories were removed during the dataset consolidation; use the current `case_01` directory only.
 - Existing routes: `GET /sessions/case-01`, `POST /sessions`, `GET /sessions/{session_id}`, `POST /sessions/{session_id}/draft`, `POST /sessions/{session_id}/finalise`, `GET /sessions/{session_id}/advice` (C), and `POST /sessions/{session_id}/complete-ai` (B).
-- `POST /sessions` returns the server-generated `id` (use this as `session_id`), `started_at` and mode. A repeated `attempt_key` can reopen the same session. The existing SQLite `investigation_sessions` table persists session lifecycle and report findings. **Known integration blocker (2026-11-10):** `src/backend/app/api/sessions.py` and `tests/test_health.py` still reference deleted `case_01_test1`; six baseline tests fail with `FileNotFoundError`. Fix the backend loader and dataset-specific test expectations in a separate coordinated change before any end-to-end run.
+- `POST /sessions` returns the server-generated `id` (use this as `session_id`), `started_at` and mode. A repeated `attempt_key` can reopen the same session. The existing SQLite `investigation_sessions` table persists session lifecycle and report findings. **Compatibility update (2026-11-11):** The backend now loads the canonical `case_01` dataset, and CI checks pass. Telemetry ingestion remains future integration work.
 
 ## Event envelope v1.0
 
@@ -82,7 +82,7 @@ Scenario, version, mode and participant pseudonym are resolved from the **server
 
 ## Review and change control
 
-- [x] Checked backend/frontend interfaces and current dataset paths on `main`; documented the stale backend path as an integration blocker.
+- [x] Checked backend/frontend interfaces and canonical dataset paths; verified compatibility fixes.
 - [x] Adopted the current `case_01` dataset and the backend's `case_01` v1.0 session identifier as the working contract baseline, per team direction.
 - [x] Specified exact event fields, catalog, validation and synthetic JSON examples.
 - [ ] Implement and test `POST /events`, active-session enforcement, capture timing, suggestion decisions and atomic finalisation with Tin/Phi (SCRUM-103/integration).
