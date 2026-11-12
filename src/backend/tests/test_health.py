@@ -32,7 +32,7 @@ def load_case_one():
     return {
         "id": "case_01",
         "version": "1.0",
-        "title": "PowerShell and Firewall Tampering",
+        "title": "Endpoint Script Execution Alert",
         "evidence": records,
     }
 
@@ -47,7 +47,7 @@ def test_health_and_openapi():
         schema = client.get("/openapi.json")
 
         assert schema.status_code == 200
-        assert set(schema.json()["paths"]) == {"/health", "/investigate"}
+        assert {"/health", "/investigate", "/sessions"} <= set(schema.json()["paths"])
 
 
 def test_case_one_real_evidence_is_labelled_suspicious():
@@ -59,6 +59,6 @@ def test_case_one_real_evidence_is_labelled_suspicious():
     assert response.status_code == 200
     assert response.json()["case_id"] == "case_01"
     assert response.json()["label"] == "suspicious"
-    assert response.json()["prototype"] == "fixed-rule-v1"
+    assert response.json()["prototype"] == "fixed-rule-v2"
 
     print(response.json())

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { ConnectedCaseLoader } from '../api/sessions';
 import type { InvestigationCase } from '../api/generated';
 import { loadDraft, saveDraft } from '../storage/local-drafts';
 import {
@@ -13,7 +14,10 @@ import type { InvestigationDraft, ReviewDecision, WorkflowMode } from '../state/
 export type CaseLoader = () => Promise<InvestigationCase>;
 type Notice = { kind: 'error' | 'info'; text: string } | null;
 
-export function useInvestigation(loadCase: CaseLoader) {
+export function useInvestigation(loadCase: CaseLoader, loadConnectedCase?: ConnectedCaseLoader) {
+  const [connected, setConnected] = useState<Awaited<ReturnType<ConnectedCaseLoader>> | null>(null);
+  const [busy, setBusy] = useState(false);
+  const writing = useRef(false);
   const [data, setData] = useState<InvestigationCase | null>(null);
   const [draft, setDraft] = useState<InvestigationDraft | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,9 +35,28 @@ export function useInvestigation(loadCase: CaseLoader) {
     let cancelled = false;
     setLoading(true);
     setLoadFailed(false);
-    loadCase()
-      .then((result) => {
+    const load = loadConnectedCase
+      ? loadConnectedCase().then((session) => ({ result: session.data, session }))
+      : loadCase().then((result) => ({ result, session: null }));
+    load
+      .then(({ result, session }) => {
         if (cancelled) return;
+        setConnected(session);
+        if (session) {
+          setData(result);
+          setDraft(session.draft);
+          setActiveId(result.evidence[0]?.id ?? '');
+          setDirty(false);
+          setSaveStatus(
+            session.draft.status === 'finalised'
+              ? 'Finalised on server'
+              : session.hasFindings
+                ? 'Saved on server'
+                : 'Not saved',
+          );
+          setNotice(null);
+          return;
+        }
         const saved = loadDraft(result, 'combined');
         setData(result);
         setDraft(saved.ok && saved.value ? saved.value : createDraft(result, 'combined'));
@@ -57,7 +80,7 @@ export function useInvestigation(loadCase: CaseLoader) {
     return () => {
       cancelled = true;
     };
-  }, [loadCase, attempt]);
+  }, [loadCase, loadConnectedCase, attempt]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -70,7 +93,7 @@ export function useInvestigation(loadCase: CaseLoader) {
   }, [dirty]);
 
   function edit(next: InvestigationDraft) {
-    if (!draft || draft.mode === 'ai' || draft.status === 'finalised') return;
+    if (writing.current || !draft || draft.mode === 'ai' || draft.status === 'finalised') return;
     setDraft(next);
     setDirty(true);
     setSaveStatus('Unsaved changes');
@@ -78,6 +101,25 @@ export function useInvestigation(loadCase: CaseLoader) {
   }
   function persist(next = draft): boolean {
     if (!data || !next) return false;
+    if (connected) {
+      if (writing.current) return false;
+      writing.current = true;
+      setBusy(true);
+      setNotice(null);
+      void connected
+        .save(next)
+        .then((saved) => {
+          setDraft(saved);
+          setDirty(false);
+          setSaveStatus(saved.status === 'finalised' ? 'Finalised on server' : 'Saved on server');
+        })
+        .catch((error: Error) => setNotice({ kind: 'error', text: error.message }))
+        .finally(() => {
+          writing.current = false;
+          setBusy(false);
+        });
+      return false;
+    }
     const result = saveDraft(data, next.mode, next);
     if (!result.ok) {
       setNotice({ kind: 'error', text: result.error });
@@ -109,14 +151,19 @@ export function useInvestigation(loadCase: CaseLoader) {
     setNotice(saved.ok ? null : { kind: 'error', text: saved.error });
   }
   function requestMode(mode: WorkflowMode) {
-    if (!draft || mode === draft.mode) return;
+    if (connected || !draft || mode === draft.mode) return;
     if (dirty) setPendingMode(mode);
     else switchMode(mode);
   }
   function handleReview(id: string, decision: ReviewDecision, revision = '') {
     if (!draft) return;
     try {
-      edit(reviewAdvice(draft, id, decision, revision));
+      const reviewed = reviewAdvice(draft, id, decision, revision);
+      if (connected) {
+        if (!writing.current) setDraft(reviewed);
+      } else {
+        edit(reviewed);
+      }
     } catch (error) {
       setNotice({ kind: 'error', text: (error as Error).message });
     }
@@ -173,6 +220,8 @@ export function useInvestigation(loadCase: CaseLoader) {
   return {
     data,
     draft,
+    busy,
+    startedAt: connected?.startedAt,
     loading,
     loadFailed,
     activeId,

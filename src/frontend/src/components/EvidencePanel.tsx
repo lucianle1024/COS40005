@@ -1,8 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { EvidenceRecord } from '../api/generated';
 import { Icon } from './Icons';
 import { RecordInspector } from './RecordInspector';
-import { CitationButton } from './CitationButton';
 interface Props {
   records: EvidenceRecord[];
   selectedEvidenceIds: string[];
@@ -21,18 +20,27 @@ export function EvidencePanel({
 }: Props) {
   const [search, setSearch] = useState('');
   const [kind, setKind] = useState('all');
-  const query = search.trim().toLowerCase();
-  const visible = records.filter(
-    (record) =>
-      (kind === 'all' || record.kind === kind) &&
-      [record.id, record.title, record.content, ...record.indicators]
-        .join(' ')
-        .toLowerCase()
-        .includes(query),
-  );
-  visible.sort(
-    (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp) || a.id.localeCompare(b.id),
-  );
+  const [page, setPage] = useState(0);
+  const visible = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return records
+      .filter(
+        (record) =>
+          (kind === 'all' || record.kind === kind) &&
+          (!query ||
+            [record.id, record.title, record.content, ...record.indicators]
+              .join(' ')
+              .toLowerCase()
+              .includes(query)),
+      )
+      .sort(
+        (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp) || a.id.localeCompare(b.id),
+      );
+  }, [records, search, kind]);
+  const pageSize = 50;
+  const pageCount = Math.ceil(visible.length / pageSize);
+  const currentPage = Math.min(page, Math.max(0, pageCount - 1));
+  const pageRecords = visible.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
   const selected = records.find((record) => record.id === activeId);
   return (
     <section className="panel evidence-panel" aria-labelledby="evidence-title">
@@ -54,6 +62,7 @@ export function EvidencePanel({
               value={search}
               onChange={(event) => {
                 setSearch(event.target.value);
+                setPage(0);
               }}
             />
             {search && (
@@ -63,6 +72,7 @@ export function EvidencePanel({
                 aria-label="Clear search"
                 onClick={() => {
                   setSearch('');
+                  setPage(0);
                 }}
               >
                 <Icon name="close" size={15} />
@@ -78,6 +88,7 @@ export function EvidencePanel({
               value={kind}
               onChange={(event) => {
                 setKind(event.target.value);
+                setPage(0);
               }}
             >
               <option value="all">All record types</option>
@@ -91,6 +102,7 @@ export function EvidencePanel({
                 type="button"
                 onClick={() => {
                   setSearch('');
+                  setPage(0);
                   setKind('all');
                 }}
               >
@@ -102,13 +114,19 @@ export function EvidencePanel({
             </span>
           </div>
         </div>
-        <div id="evidence-record-list" className="records-list">
+        <div
+          id="evidence-record-list"
+          className="records-list"
+          tabIndex={pageCount > 1 ? 0 : undefined}
+          aria-label="Evidence records"
+          role="region"
+        >
           {!records.length ? (
             <p className="empty-state">No evidence records are available for this case.</p>
           ) : !visible.length ? (
             <p className="empty-state">No records match your filters.</p>
           ) : (
-            visible.map((record) => (
+            pageRecords.map((record) => (
               <div
                 key={record.id}
                 className={`record-row ${activeId === record.id ? 'record-active' : ''}`}
@@ -126,26 +144,33 @@ export function EvidencePanel({
                   </span>
                   <Icon name="arrow" size={15} />
                 </button>
-                <CitationButton
-                  id={record.id}
-                  cited={selectedEvidenceIds.includes(record.id)}
-                  disabled={readOnly}
-                  onToggle={() =>
-                    onSelectionChange(
-                      selectedEvidenceIds.includes(record.id)
-                        ? selectedEvidenceIds.filter((id) => id !== record.id)
-                        : [...selectedEvidenceIds, record.id],
-                    )
-                  }
-                />
               </div>
             ))
           )}
         </div>
-        <p className="selection-hint">
-          Cite adds a supporting record to Your findings. Opening a record does not cite or verify
-          it.
-        </p>
+        {pageCount > 1 && (
+          <nav className="filter-row" aria-label="Evidence pages">
+            <button
+              type="button"
+              className="text-button"
+              disabled={currentPage === 0}
+              onClick={() => setPage(currentPage - 1)}
+            >
+              Previous
+            </button>
+            <span>
+              Page {currentPage + 1} of {pageCount}
+            </span>
+            <button
+              type="button"
+              className="text-button"
+              disabled={currentPage + 1 === pageCount}
+              onClick={() => setPage(currentPage + 1)}
+            >
+              Next
+            </button>
+          </nav>
+        )}
         {selected && visible.length > 0 && !visible.some((record) => record.id === selected.id) && (
           <p className="filter-notice">
             Inspecting {selected.id}, which is outside the current filters.

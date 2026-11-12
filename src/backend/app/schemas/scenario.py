@@ -10,9 +10,20 @@ class ScenarioInput(BaseModel):
     version: str = Field(min_length=1)
     title: str = Field(min_length=1)
     evidence: list[EvidenceRecord] = Field(min_length=1)
+Classification = Literal["undetermined", "benign", "suspicious", "malicious"]
+
+
+class AdviceClaim(BaseModel):
+    id: str
+    title: str
+    classification: Classification
+    rationale: str
+    evidence_ids: list[str]
+
+
 class LabelResult(BaseModel):
     case_id: str
-    label: Literal["undetermined", "benign", "suspicious", "malicious"]
+    label: Classification
     confidence: float = Field(ge=0, le=1)
     supporting_evidence: list[str]
     rationale: str

@@ -6,16 +6,19 @@ interface Props {
   dirty: boolean;
   data: InvestigationCase;
   draft: InvestigationDraft;
+  busy?: boolean;
   onChange: (draft: InvestigationDraft) => void;
 }
-export function FindingsPanel({ saveStatus, dirty, data, draft, onChange }: Props) {
+export function FindingsPanel({ saveStatus, dirty, data, draft, onChange, busy = false }: Props) {
   const locked = draft.status === 'finalised';
   return (
     <section className="panel findings-panel" aria-labelledby="findings-title">
       <div className="panel-heading">
         <div>
           <span className="step-number">{draft.mode === 'human' ? '02' : '03'}</span>
-          <h2 id="findings-title">Your findings</h2>
+          <h2 id="findings-title" tabIndex={-1}>
+            Your findings
+          </h2>
         </div>
         <div className="findings-state">
           <span className={`badge ${locked ? 'badge-benign' : 'badge-neutral'}`}>
@@ -34,7 +37,7 @@ export function FindingsPanel({ saveStatus, dirty, data, draft, onChange }: Prop
             Your assessment
             <select
               aria-label="Your assessment"
-              disabled={locked}
+              disabled={locked || busy}
               value={draft.classification}
               onChange={(event) =>
                 onChange({
@@ -53,7 +56,7 @@ export function FindingsPanel({ saveStatus, dirty, data, draft, onChange }: Prop
             Your reasoning
             <textarea
               aria-label="Your reasoning"
-              disabled={locked}
+              disabled={locked || busy}
               rows={9}
               value={draft.reasoning}
               placeholder="What happened? Which records support your conclusion? What is still uncertain?"
@@ -73,7 +76,7 @@ export function FindingsPanel({ saveStatus, dirty, data, draft, onChange }: Prop
                       {data.evidence.find((record) => record.id === id)?.title ??
                         'Unavailable record'}
                     </span>
-                    {!locked && (
+                    {!locked && !busy && (
                       <button
                         type="button"
                         className="icon-button"

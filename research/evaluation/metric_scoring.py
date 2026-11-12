@@ -5,6 +5,7 @@ Case 1 ground truth and telemetry contract are approved by the team.
 """
 
 import argparse
+import hashlib
 import ipaddress
 import json
 import re
@@ -32,9 +33,7 @@ def canonical_ioc(item):
     return kind, value
 
 
-def score_iocs(truth, reported):
-    expected = {canonical_ioc(ioc) for ioc in truth}
-    predicted = {canonical_ioc(ioc) for ioc in reported}
+def _score_sets(expected, predicted):
     tp = len(expected & predicted)
     fp = len(predicted - expected)
     fn = len(expected - predicted)
@@ -43,6 +42,70 @@ def score_iocs(truth, reported):
     f1 = 2 * tp / (2 * tp + fp + fn) if 2 * tp + fp + fn else None
     return {"tp": tp, "fp": fp, "fn": fn, "precision": precision,
             "recall": recall, "f1": f1}
+
+
+def score_iocs(truth, reported):
+    return _score_sets(
+        {canonical_ioc(ioc) for ioc in truth},
+        {canonical_ioc(ioc) for ioc in reported},
+    )
+
+
+def reference_findings(case_truth):
+    """Flatten the case owner's existing reference lists without declaring them malicious IOCs."""
+    groups = case_truth["iocs"]
+    if not isinstance(groups, dict):
+        raise ValueError("Case truth iocs must be grouped by category")
+    groups = {**groups, "mitre_techniques": case_truth.get("mitre_techniques", [])}
+    if any(not isinstance(values, list) for values in groups.values()):
+        raise ValueError("Reference categories must contain lists")
+    return [
+        {"category": category, "value": value}
+        for category, values in groups.items()
+        for value in values
+    ]
+
+
+def canonical_finding(item):
+    category = str(item["category"]).strip().lower()
+    value = str(item["value"]).strip().casefold()
+    if not category or not value:
+        raise ValueError("Finding category and value must not be empty")
+    if category == "file_hashes" and (
+        len(value) not in {32, 40, 64} or not re.fullmatch(r"[0-9a-f]+", value)
+    ):
+        raise ValueError("Invalid file hash")
+    if category == "mitre_techniques" and not re.fullmatch(r"t[0-9]{4}(?:\.[0-9]{3})?", value):
+        raise ValueError("Invalid MITRE technique ID")
+    if category == "domains":
+        value = canonical_ioc({"type": "domain", "value": value})[1]
+    if category == "network_ips":
+        value = canonical_ioc({"type": "ip", "value": value})[1]
+    return category, value
+
+
+def score_reference_findings(case_truth, reported):
+    """Count reference agreement, without claiming unmatched findings are false positives."""
+    expected = {canonical_finding(item) for item in reference_findings(case_truth)}
+    predicted = {canonical_finding(item) for item in reported}
+    matched, unmatched, missing = expected & predicted, predicted - expected, expected - predicted
+    categories = sorted({category for category, _ in expected | predicted})
+    return {
+        "matched_count": len(matched),
+        "unmatched_reported_count": len(unmatched),
+        "missing_reference_count": len(missing),
+        "unmatched_reported": [
+            {"category": category, "value": value} for category, value in sorted(unmatched)
+        ],
+        "by_category": {
+            category: {
+                "matched_count": sum(item[0] == category for item in matched),
+                "unmatched_reported_count": sum(item[0] == category for item in unmatched),
+                "missing_reference_count": sum(item[0] == category for item in missing),
+            }
+            for category in categories
+        },
+    }
 
 
 def evaluate_trial(trial):
@@ -92,10 +155,39 @@ def evaluate_trial(trial):
 
 def main():
     parser = argparse.ArgumentParser(description="Score one synthetic research trial")
-    parser.add_argument("trial_json", type=Path)
+    parser.add_argument("trial_json", nargs="?", type=Path)
+    parser.add_argument("--case-truth", type=Path, help="Existing OTRF reference JSON")
+    parser.add_argument("--report", type=Path, help="Structured findings for reference comparison")
     args = parser.parse_args()
-    data = json.loads(args.trial_json.read_text(encoding="utf-8"))
-    print(json.dumps(evaluate_trial(data), indent=2))
+    if args.case_truth:
+        if args.trial_json:
+            parser.error("Use either trial_json or --case-truth")
+        truth = json.loads(args.case_truth.read_text(encoding="utf-8"))
+        result = {
+            "dataset": args.case_truth.parent.name,
+            "scenario_id": truth["scenario_id"],
+            "rubric_version": "draft-v0.2",
+            "reference_sha256": hashlib.sha256(args.case_truth.read_bytes()).hexdigest(),
+            "reference_counts": {
+                **{category: len(values) for category, values in truth["iocs"].items()},
+                "mitre_techniques": len(truth.get("mitre_techniques", [])),
+            },
+        }
+        if args.report:
+            report = json.loads(args.report.read_text(encoding="utf-8"))
+            if report["dataset"] != result["dataset"]:
+                raise ValueError("Report dataset does not match reference dataset")
+            if report.get("reference_sha256", result["reference_sha256"]) != result["reference_sha256"]:
+                raise ValueError("Report reference_sha256 does not match the truth file")
+            result["reference_matching"] = score_reference_findings(
+                truth, report["reported_findings"]
+            )
+        print(json.dumps(result, indent=2))
+    elif args.trial_json and args.report is None:
+        data = json.loads(args.trial_json.read_text(encoding="utf-8"))
+        print(json.dumps(evaluate_trial(data), indent=2))
+    else:
+        parser.error("Provide trial_json or --case-truth [--report REPORT]")
 
 
 if __name__ == "__main__":
