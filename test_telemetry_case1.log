@@ -1,1 +1,0 @@
-[2026-10-08T03:12:00Z] Sysmon: Process Create - C:\Windows\System32\cmd.exe executed by powershell.py with suspicious outbound connection to 192.0.2.45
