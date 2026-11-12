@@ -71,7 +71,10 @@ class ConditionBEvaluationTests(unittest.TestCase):
     def test_uses_shared_scenario_and_returns_scoreable_metadata(self):
         models = StubModels(SimpleNamespace(parsed=self.analysis, text=None))
         with patch.dict("os.environ", {"GEMINI_MODEL": "test-model"}, clear=True):
-            result = analyze_condition_b(self.scenario, client=SimpleNamespace(models=models))
+            result = analyze_condition_b(
+                self.scenario,
+                client=SimpleNamespace(models=models),
+            )
 
         self.assertEqual(result.scenario_id, "case-demo")
         self.assertEqual(result.scenario_version, "0.1")
@@ -123,7 +126,10 @@ class ConditionBEvaluationTests(unittest.TestCase):
         models = StubModels(
             SimpleNamespace(parsed=None, text=self.analysis.model_dump_json())
         )
-        result = analyze_condition_b(self.scenario, client=SimpleNamespace(models=models))
+        result = analyze_condition_b(
+            self.scenario,
+            client=SimpleNamespace(models=models),
+        )
 
         self.assertEqual(result.reported_iocs[0].type, "ip")
 
