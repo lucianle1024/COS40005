@@ -15,5 +15,8 @@ dev = ["pytest>=8,<10", "httpx>=0.27,<1"]
 [tool.setuptools.packages.find]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+"app.db" = ["migrations/*.sql"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
