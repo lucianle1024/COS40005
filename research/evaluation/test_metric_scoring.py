@@ -96,48 +96,48 @@ class MetricScoringTests(unittest.TestCase):
         path = Path(__file__).resolve().parents[2] / "data/scenarios" / dataset / "case_01_truth.json"
         return json.loads(path.read_text(encoding="utf-8"))
 
-    def test_case1_reference_matches_real_truth(self):
-        truth = self.case_truth("case_01_test1")
+    def test_current_case_reference_matches_truth(self):
+        truth = self.case_truth("case_01")
         findings = reference_findings(truth)
-        self.assertEqual((len(truth["iocs"]["suspicious_processes"]), len(findings)), (3, 12))
+        self.assertEqual((len(truth["iocs"]["suspicious_processes"]), len(findings)), (1, 17))
         result = score_reference_findings(truth, findings)
-        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (12, 0, 0))
+        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (17, 0, 0))
         self.assertEqual(result["by_category"]["mitre_techniques"]["matched_count"], 4)
 
-    def test_case2_reference_matches_real_truth(self):
-        truth = self.case_truth("case_01_test2")
+    def test_current_case_reference_matches_casefolded_truth(self):
+        truth = self.case_truth("case_01")
         findings = reference_findings(truth)
-        self.assertEqual(len(findings), 16)
+        self.assertEqual(len(findings), 17)
         self.assertEqual(sorted(map(len, truth["iocs"]["file_hashes"])), [32, 40, 64])
         normalized = [{**item, "value": item["value"].swapcase()} for item in findings]
         result = score_reference_findings(truth, normalized)
-        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (16, 0, 0))
+        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (17, 0, 0))
 
-    def test_case1_partial_report_has_verified_counts(self):
-        truth = self.case_truth("case_01_test1")
+    def test_current_case_partial_report_has_verified_counts(self):
+        truth = self.case_truth("case_01")
         findings = reference_findings(truth)
-        reported = [findings[0], findings[0], {"category": "firewall_rules", "value": "unknown-rule"}]
+        reported = [findings[0], findings[0], {"category": "process_names", "value": "unknown.exe"}]
         result = score_reference_findings(truth, reported)
-        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (1, 1, 11))
-        self.assertEqual(result["unmatched_reported"], [{"category": "firewall_rules", "value": "unknown-rule"}])
-        self.assertEqual(result["by_category"]["firewall_rules"]["unmatched_reported_count"], 1)
+        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (1, 1, 16))
+        self.assertEqual(result["unmatched_reported"], [{"category": "process_names", "value": "unknown.exe"}])
+        self.assertEqual(result["by_category"]["process_names"]["unmatched_reported_count"], 1)
 
-    def test_case2_empty_report_is_not_perfect(self):
-        result = score_reference_findings(self.case_truth("case_01_test2"), [])
-        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (0, 0, 16))
+    def test_current_case_empty_report_is_not_perfect(self):
+        result = score_reference_findings(self.case_truth("case_01"), [])
+        self.assertEqual((result["matched_count"], result["unmatched_reported_count"], result["missing_reference_count"]), (0, 0, 17))
 
     def test_invalid_reference_hash_rejected(self):
-        truth = self.case_truth("case_01_test2")
+        truth = self.case_truth("case_01")
         with self.assertRaises(ValueError):
             score_reference_findings(truth, [{"category": "file_hashes", "value": "not-a-hash"}])
 
     def test_report_and_reference_hash_mismatch(self):
-        truth_file = Path(__file__).resolve().parents[2] / "data/scenarios/case_01_test1/case_01_truth.json"
+        truth_file = Path(__file__).resolve().parents[2] / "data/scenarios/case_01/case_01_truth.json"
         script = Path(__file__).with_name("metric_scoring.py")
         expected_sha = hashlib.sha256(truth_file.read_bytes()).hexdigest()
         with tempfile.TemporaryDirectory() as directory:
             report_path = Path(directory) / "report.json"
-            report = {"dataset": "case_01_test1", "reported_findings": [],
+            report = {"dataset": "case_01", "reported_findings": [],
                       "reference_sha256": expected_sha}
             report_path.write_text(json.dumps(report), encoding="utf-8")
             cmd = [sys.executable, str(script), "--case-truth", str(truth_file),
@@ -154,7 +154,7 @@ class MetricScoringTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("reference_sha256 does not match", result.stderr)
             report["reference_sha256"] = expected_sha
-            report["dataset"] = "case_01_test2"
+            report["dataset"] = "different_case"
             report_path.write_text(json.dumps(report), encoding="utf-8")
             result = subprocess.run(cmd, capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
@@ -166,6 +166,13 @@ class MetricScoringTests(unittest.TestCase):
         self.assertEqual(score_reference_findings(truth, exact)["matched_count"], 1)
         slash_variant = [{"category": "file_paths", "value": "c:/users/pgustavo/desktop/launcher.vbs"}]
         self.assertEqual(score_reference_findings(truth, slash_variant)["matched_count"], 0)
+
+    def test_current_truth_typed_iocs_are_separate_from_reference_findings(self):
+        truth = self.case_truth("case_01")
+        result = score_iocs(truth["truth_iocs"], truth["truth_iocs"])
+        self.assertEqual((result["tp"], result["fp"], result["fn"]), (2, 0, 0))
+        self.assertEqual(result["f1"], 1)
+        self.assertEqual(len(reference_findings(truth)), 17)
 
     @staticmethod
     def valid_trial():
