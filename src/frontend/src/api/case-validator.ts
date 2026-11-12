@@ -1,8 +1,21 @@
 import Ajv from 'ajv';
 import schema from '../../contracts/workbench.schema.json';
-import type { InvestigationCase } from './generated';
+import type { AdviceItem, InvestigationCase } from './generated';
 
-const check = new Ajv({ allErrors: true }).compile<InvestigationCase>(schema);
+const validator = new Ajv({ allErrors: true });
+const check = validator.compile<InvestigationCase>(schema);
+const checkAdvice = validator.compile<AdviceItem[]>({
+  type: 'array',
+  items: { $ref: '#/definitions/AdviceItem' },
+  definitions: schema.definitions,
+});
+
+export function validateAdvice(input: unknown): AdviceItem[] {
+  if (!checkAdvice(input) || new Set(input.map((item) => item.id)).size !== input.length) {
+    throw new Error('Invalid advice from the session API.');
+  }
+  return input;
+}
 
 export function validateCase(input: unknown): InvestigationCase {
   if (!check(input)) throw new Error('Invalid case data. Check the case schema.');
