@@ -1,6 +1,10 @@
 # COS40005 FastAPI backend
 
-## Local setup
+Directory plan agreed by the team, as reported by Tin on 3 November 2026.
+This is a starter scaffold. `GET /health` and the prototype `POST /investigate`
+route are implemented; the latter uses a deterministic fixed-rule labeler.
+Other workflow modules remain planned. SQL migrations, prompt templates and
+workflow tests will be added with their reviewed implementations.
 
 Use Python 3.13 for the tested dependency set. In PowerShell from the repository root:
 
@@ -29,11 +33,35 @@ This is a local development build. Case 1 Human + AI serves fixed-rule claims fr
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-The connected CI workflow runs the backend tests and exercises the React workflow against a temporary SQLite database. Dependency constraints record the resolved Python 3.13 package versions.
+The tests cover liveness, OpenAPI registration, and offline Condition B output
+validation with a stubbed model response. They do not check database
+connectivity, live AI calls or frontend integration. Dependencies are declared
+as compatible ranges; lock resolved versions once the team has verified
+installation.
 
-## Research telemetry storage (SCRUM-103)
+The separate AI-only Condition B runner is optional and is not used by the
+`/investigate` endpoint. To install its provider dependency, include the
+`evaluation` extra:
 
-`app.db.telemetry.TelemetryStore` uses the **same SQLite file** as `Sessions`; no new service or credentials are required. It creates `telemetry_events`, `suggestion_exposures` and `suggestion_decisions` from `app/db/migrations/001_telemetry.sql` without altering `investigation_sessions`. The schema follows the SCRUM-102 working contract (`1.0-working`).
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,evaluation]"
+```
+
+From `src/backend`, run it with a JSON file matching the shared
+`ScenarioInput` schema:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.ai.condition_b_eval input-scenario.json output-report.json
+```
+
+Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` before running; optionally set
+`GEMINI_MODEL` to select the model. This makes a live provider request. Do not
+use it for study results until the case, scoring, and measurement contracts
+have been approved. `run_duration_ms` measures from immediately before the
+provider request through structured-response and evidence-reference validation;
+it excludes process startup, input loading, and client construction. The team
+must approve this measurement boundary before comparing it with human trial
+timings.
 
 The frontend does not send these events yet. This remains **storage-only**. SCRUM-102 has been merged; API and UI integration are still pending. The existing Condition B result remains in `investigation_sessions.findings`. Do not use these draft timestamps as final study outcomes.
 
@@ -43,7 +71,15 @@ To run the focused telemetry storage and contract tests:
 .\.venv\Scripts\python.exe -m pytest -q tests/test_telemetry.py tests/test_telemetry_contract.py
 ```
 
-After following Local setup, run the full backend suite (including isolated SQLite telemetry tests):
+- app/main.py: construct FastAPI and register implemented routes.
+- app/config.py: environment settings and allowed frontend origins.
+- app/api/: HTTP endpoints; health.py and investigations.py currently serve routes.
+- app/schemas/: future Pydantic request/response definitions.
+- app/domain/: future investigation rules independent of HTTP and SQL.
+- app/services/: future workflow coordination.
+- app/ai/: fixed-rule prototype and separate Condition B AI-only runner.
+- app/db/: future SQLite access and Nhat's reviewed migrations.
+- tests/: backend behaviour and API checks.
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
