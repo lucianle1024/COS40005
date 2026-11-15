@@ -33,10 +33,9 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]" -c constraints.txt
 ```
 
-
+<<<<<<<<< Temporary merge branch 1
 This is a local development build. Case 1 Human + AI serves fixed-rule claims from `GET /sessions/{session_id}/advice`. The route is limited to Human + AI sessions. Individual review decisions are held in the React workspace. Participant access control and telemetry API integration remain outside this increment.
 
-## Start the backend and open Swagger
 
 From `src/backend`, start the FastAPI development server:
 
@@ -44,7 +43,7 @@ From `src/backend`, start the FastAPI development server:
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-
+<<<<<<<<< Temporary merge branch 1
 The tests cover liveness, OpenAPI registration, and offline Condition B output
 validation with a stubbed model response. They do not check database
 connectivity, live AI calls or frontend integration. Dependencies are declared
