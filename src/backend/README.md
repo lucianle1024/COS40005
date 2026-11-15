@@ -1,6 +1,12 @@
 # COS40005 FastAPI backend
 
-This README explains how to set up and run the backend, try the Case 1 investigation, and run backend and frontend checks. Unless a section says otherwise, backend commands run from `src/backend`.
+
+Directory plan agreed by the team, as reported by Tin on 3 November 2026.
+This is a starter scaffold. `GET /health` and the prototype `POST /investigate`
+route are implemented; the latter uses a deterministic fixed-rule labeler.
+Other workflow modules remain planned. SQL migrations, prompt templates and
+workflow tests will be added with their reviewed implementations.
+
 
 ## Python environment
 
@@ -29,7 +35,9 @@ python -m pip install -e ".[dev]" -c constraints.txt
 
 In PowerShell, use `.venv`'s Python directly as shown below, or activate it with `.\.venv\Scripts\Activate.ps1`. In Bash, activate it with `source .venv/bin/activate` or use `.venv/bin/python` in place of `python`.
 
-## Start the backend and open Swagger
+
+This is a local development build. Case 1 Human + AI serves fixed-rule claims from `GET /sessions/{session_id}/advice`. The route is limited to Human + AI sessions. Individual review decisions are held in the React workspace. Participant access control and telemetry API integration remain outside this increment.
+
 
 From `src/backend`, start the FastAPI development server:
 
@@ -86,50 +94,66 @@ Run the commands below from `src/backend`. With the virtual environment activate
 python -m pytest -q tests/test_health.py tests/test_assessment.py
 ```
 
-Checks the health and OpenAPI endpoints, the Case 1 suspicious label, and whether fixed-rule explanations cite matching evidence without citing unrelated evidence.
 
-### Print the labeled Case 1 response
+The tests cover liveness, OpenAPI registration, and offline Condition B output
+validation with a stubbed model response. They do not check database
+connectivity, live AI calls or frontend integration. Dependencies are declared
+as compatible ranges; lock resolved versions once the team has verified
+installation.
 
-```bash
-python -m pytest -q tests/test_health.py::test_case_one_real_evidence_is_labelled_suspicious -s
+The separate AI-only Condition B runner is optional and is not used by the
+`/investigate` endpoint. To install its provider dependency, include the
+`evaluation` extra:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,evaluation]"
 ```
 
-Runs the real Case 1 investigation check and prints its response. The test checks the response status, case ID, suspicious label, and fixed-rule prototype. `-s` shows output printed by the test.
+From `src/backend`, run it with a JSON file matching the shared
+`ScenarioInput` schema:
 
-### Complete backend test suite
-
-```bash
-python -m pytest -q
+```powershell
+.\.venv\Scripts\python.exe -m app.ai.condition_b_eval input-scenario.json output-report.json
 ```
 
-Runs all collected backend tests, including health, assessment, session, lifecycle, and telemetry contract checks.
+Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` before running; optionally set
+`GEMINI_MODEL` to select the model. This makes a live provider request. Do not
+use it for study results until the case, scoring, and measurement contracts
+have been approved. `run_duration_ms` measures from immediately before the
+provider request through structured-response and evidence-reference validation;
+it excludes process startup, input loading, and client construction. The team
+must approve this measurement boundary before comparing it with human trial
+timings.
 
-### Verbose condition coverage
+The frontend does not send these events yet. This remains **storage-only**. SCRUM-102 has been merged; API and UI integration are still pending. The existing Condition B result remains in `investigation_sessions.findings`. Do not use these draft timestamps as final study outcomes.
 
-```bash
-python -m pytest -vv tests/test_sessions.py tests/test_lifecycle.py tests/test_health.py
+To run the focused telemetry storage and contract tests:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests/test_telemetry.py tests/test_telemetry_contract.py
 ```
 
-Shows each test name while checking session behavior, condition-specific actions, valid and invalid lifecycle changes, health/API behavior, and the Case 1 response.
+- app/main.py: construct FastAPI and register implemented routes.
+- app/config.py: environment settings and allowed frontend origins.
+- app/api/: HTTP endpoints; health.py and investigations.py currently serve routes.
+- app/schemas/: future Pydantic request/response definitions.
+- app/domain/: future investigation rules independent of HTTP and SQL.
+- app/services/: future workflow coordination.
+- app/ai/: fixed-rule prototype and separate Condition B AI-only runner.
+- app/db/: future SQLite access and Nhat's reviewed migrations.
+- tests/: backend behaviour and API checks.
 
-### Verbose complete backend test suite
-
-```bash
-python -m pytest -vv
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Runs the complete backend suite and prints each test name and result.
+The telemetry tests use `tmp_path` and never read or overwrite the local `investigation-sessions.sqlite3` file. The production database file is excluded by `.gitignore`.
 
-Pytest reports each test as `PASSED` or `FAILED`. A final summary such as `13 passed` means 13 tests passed; the count can change as tests are added or parameterized. Warnings, such as dependency deprecation warnings, are listed separately from pass/fail results.
+To initialise an empty local database (not tracked in Git), from `src/backend`:
 
-The connected CI workflow runs the backend tests and exercises the React workflow against a temporary SQLite database. Dependency constraints record the resolved Python 3.13 package versions.
-
-## Run frontend tests
-
-From `src/frontend`, run:
-
-```bash
-npm test
+```powershell
+.\.venv\Scripts\python.exe -c "from pathlib import Path; from app.db.telemetry import TelemetryStore; TelemetryStore(Path('cos40005-study.sqlite3')); print('SQLite ready')"
 ```
 
-This runs the frontend Vitest checks for the app, case validation, demo data, backend connection display, investigation state, hooks, and local draft storage. The frontend tests do not require the backend server to be running. Install frontend dependencies first with `npm ci --ignore-scripts` if needed. Node.js 24.22.1 is specified in the frontend README.
+This creates the four tables locally. Re-running it is safe; teammates create their own local database after pulling.
+
