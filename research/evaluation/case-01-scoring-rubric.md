@@ -7,16 +7,11 @@ Status: Draft. The case owner must approve the ground-truth categories before th
 
 ## Dataset identity and scope
 
-The team already has two OTRF datasets in the repository. I will use these files directly, without creating or changing the original evidence:
+The current Case 1 research dataset is `data/scenarios/case_01/` (OTRF `empire_launcher_vbs`). Its incident is a VBScript stager followed by obfuscated PowerShell execution. The participant workbench uses 350 bounded evidence records. I use the existing `case_01_truth.json` without modifying the dataset or presenting its answer key to participants.
 
-| Dataset directory | Reference content | Reference entries |
-|---|---|---|
-| `data/scenarios/case_01_test1/` | PowerShell execution and firewall tampering | 8 grouped findings and 4 MITRE techniques |
-| `data/scenarios/case_01_test2/` | VBScript stager and obfuscated PowerShell execution | 12 grouped findings and 4 MITRE techniques |
+The truth file declares `scenario_id: case_01` but does not declare `scenario_version`. The backend session API currently uses `case_version: 1.0`; this must not be mistaken for a version supplied by the original dataset. The older `case_01_test1/` and `case_01_test2/` directories have been removed, and the synthetic phishing frontend fixture is a separate demo.
 
-Both truth files use `scenario_id: case_01`, so the dataset directory must also be recorded to prevent accidental cross-scoring. Neither truth file specifies a `scenario_version`; I will not invent one. The separate `src/frontend/src/fixtures/phishing-case.json` is a synthetic UI demo (`case-01`, v0.1), not either of these OTRF datasets. Jira still calls Case 1 Phishing; the team should align that wording with the chosen datasets.
-
-These lists are the group's *existing reference findings*, not an approved malicious-IOC whitelist. Items such as `explorer.exe`, host names and accounts may be important context without being malicious. A match to these reference lists must not be presented as malicious IOC accuracy or participant performance until Huy reviews the scored categories.
+The reference file contains 13 grouped entries under `iocs` and four MITRE ATT&CK techniques (17 reference entries in total). Its separate `truth_iocs` array contains two explicitly typed hash IOC entries (one SHA-256 and one MD5). The other grouped items include processes, file paths, users and host context: matching them is not the same as confirming malicious IOC accuracy. Huy must approve the final scoring categories before participant evaluation.
 
 ## Reference matching for technical tests
 
@@ -32,20 +27,21 @@ The scorer's new `score_reference_findings()` uses the existing `iocs` category 
 - The reference comparison outputs matched, unmatched-reported and missing-reference counts, plus category breakdowns and the unmatched values. These are not Precision, Recall or F1 scores until reference completeness and malicious labels are approved.
 - Each CLI result includes the dataset folder, draft rubric version and SHA-256 of the reference file. If a test report carries `reference_sha256`, the scorer rejects a mismatch.
 
-### Available reference categories
+### Current Case 1 reference categories
 
-| Test 1 category | Count | Test 2 category | Count |
-|---|---:|---|---:|
-| `suspicious_processes` | 3 | `suspicious_processes` | 1 |
-| `target_binaries` | 1 | `process_names` | 2 |
-| `accounts_involved` | 2 | `file_paths` | 2 |
-| `firewall_rules` | 2 | `file_hashes` | 3 |
-| `network_ips`, `domains` | 0 | `user_accounts` | 1 |
-| - | - | `target_hosts` | 1 |
-| - | - | `registry_keys_modified` | 2 |
-| `mitre_techniques` | 4 | `mitre_techniques` | 4 |
+| Category | Entries |
+|---|---:|
+| `suspicious_processes` | 1 |
+| `process_names` | 3 |
+| `file_paths` | 2 |
+| `file_hashes` | 3 |
+| `user_accounts` | 1 |
+| `target_hosts` | 1 |
+| `registry_keys_modified` | 2 |
+| `mitre_techniques` | 4 |
+| **Total reference entries** | **17** |
 
-Root cause remains a separately reviewed outcome; it is not automatically scored as a finding string. The current UI saves classification, reasoning and evidence IDs rather than typed findings, so no participant IOC F1 can be derived from that payload alone.
+Root cause and benign noise are separate fields. They are not automatically scored as IOC findings. The current UI stores classification, reasoning and evidence IDs rather than typed IOC tuples, so participant IOC F1 cannot yet be computed from its final report alone.
 
 ## Primary IOC scoring
 
@@ -86,7 +82,7 @@ Result: TP = 2, FP = 1, FN = 1, Precision = 0.667, Recall = 0.667, F1 = 0.667 (r
 ## Research use boundary
 
 - `score_iocs()` remains the primary typed IOC utility. Its existing IP/domain/MD5/SHA-256 validation and synthetic timing tests are unchanged.
-- `score_reference_findings()` verifies whether structured reports match the team's two existing reference files. It does **not** label every referenced process, account, or rule as malicious.
+- `score_reference_findings()` verifies whether structured reports match the consolidated Case 1 reference file. It does **not** label every referenced process, account, or rule as malicious.
 - For participant outcomes, first confirm which reference categories represent scored malicious findings, then supply typed `reported_iocs` and actual `submit`/`triage_marked` events. Otherwise mark those measurements as unavailable rather than recording a zero or a fabricated F1.
 - Do not expose reference or answer-key files through the participant UI, API or AI prompt.
 
@@ -100,7 +96,7 @@ Result: TP = 2, FP = 1, FN = 1, Precision = 0.667, Recall = 0.667, F1 = 0.667 (r
 
 ## Review checklist
 
-- [x] I mapped both existing OTRF reference files and verified their category counts.
+- [x] I mapped the consolidated Case 1 reference file and verified its 17 reference entries.
 - [ ] Huy confirms which reference entries represent scored malicious versus contextual findings.
 - [ ] Huy and Nhat approve the exact matching/partial-credit policy and version it.
 - [ ] Tin/Phi confirm the final-report format includes typed IOCs and stable evidence IDs.

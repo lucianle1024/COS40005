@@ -1,37 +1,37 @@
-# Research evaluation
+# Research evaluation - SCRUM-104/105
 
-Sprint 1/2 prototype for SCRUM-104 and SCRUM-105. I have added reference-file checks for the team's existing OTRF datasets without modifying the original logs or ground truth.
+The evaluation script and scoring rubric use the current OTRF Case 1 reference in `data/scenarios/case_01/case_01_truth.json`. The original evidence and truth file are unchanged. This is researcher-side evaluation code, not participant scoring results.
 
-- `case-01-scoring-rubric.md` - Reference-category mapping, scoring definitions and approval gaps.
-- `metric_scoring.py` - Existing IOC/trial scorer plus separate category/value reference matching.
-- `test_metric_scoring.py` - Unit tests, including reads of both real dataset truth JSON files.
-- `sample-trial.json` - Synthetic CLI example, not a participant result.
+- `case-01-scoring-rubric.md` - Reference mapping, IOC scoring definitions and approvals still required.
+- `metric_scoring.py` - Typed IOC Precision/Recall/F1, sample trial timing and separate reference matching.
+- `test_metric_scoring.py` - Synthetic checks and tests against the current Case 1 truth file.
+- `sample-trial.json` - Synthetic sample; not an actual participant result.
 
-From repository root:
+Run from the repository root:
 
 ```powershell
 python -m unittest discover -s research/evaluation -p "test_metric_scoring.py" -v
-python research/evaluation/metric_scoring.py --case-truth data/scenarios/case_01_test1/case_01_truth.json
-python research/evaluation/metric_scoring.py --case-truth data/scenarios/case_01_test2/case_01_truth.json
+python research/evaluation/metric_scoring.py --case-truth data/scenarios/case_01/case_01_truth.json
+python research/evaluation/metric_scoring.py research/evaluation/sample-trial.json
 ```
 
-To compare a **structured test report**, create a local file outside Git containing `dataset` and a `reported_findings` list:
+To compare a structured test report, save a local JSON file, for example:
 
 ```json
 {
-  "dataset": "case_01_test1",
+  "dataset": "case_01",
   "reported_findings": [
-    {"category": "firewall_rules", "value": "python.exe"}
+    {"category": "process_names", "value": "wscript.exe"}
   ]
 }
 ```
 
-Run:
+Then run:
 
 ```powershell
-python research/evaluation/metric_scoring.py --case-truth data/scenarios/case_01_test1/case_01_truth.json --report path/to/local-report.json
+python research/evaluation/metric_scoring.py --case-truth data/scenarios/case_01/case_01_truth.json --report path/to/local-report.json
 ```
 
-The output reports reference match counts, unmatched findings and per-category breakdowns; it does not establish malicious IOC accuracy or human study results. It also records `rubric_version` and `reference_sha256` for reproducibility. A report may include `reference_sha256` to require an exact reference-file match. A raw final report currently provides reasoning and evidence IDs, not `reported_findings`, so the UI-to-evaluation adapter and actual telemetry remain future integration work. Use the original trial scorer with `python research/evaluation/metric_scoring.py research/evaluation/sample-trial.json` for the existing synthetic timing example.
+The truth currently contains 13 grouped findings and four MITRE techniques (17 reference entries), plus two explicitly typed `truth_iocs` hashes. `reference_matching` counts agreement with the reference, not verified malicious-IOC accuracy. Results include a SHA-256 of the truth file for reproducibility; reports can supply `reference_sha256` to require an exact match.
 
-The case owner must approve scored malicious/contextual categories before participant evaluation. Keep actual participant results and confidential keys out of GitHub. Record AI-assisted work in the course AI Usage Log.
+The frontend final report still stores reasoning and evidence IDs rather than `reported_findings` or typed `reported_iocs`, so an adapter and validated timing events are needed for real trials. The case owner must confirm scored malicious vs contextual categories before participant evaluation. Do not commit participant data or expose the ground-truth file to the participant UI.
