@@ -1,0 +1,81 @@
+{
+  "scenario_id": "case_02",
+  "name": "Empire Mimikatz sekurlsa::logonpasswords – In-Memory Credential Dumping via PowerShell",
+  "root_cause": "An Empire C2 agent running under user 'pgustavo' on WORKSTATION5 executed an in-memory PowerShell payload (delivered as a Base64-encoded command) that reflectively loaded Mimikatz-equivalent code using native Win32 API calls (OpenProcess / ReadProcessMemory) to access lsass.exe memory and dump plaintext credentials and NTLM hashes (sekurlsa::logonpasswords). The agent maintained a persistent HTTP callback to the C2 listener at 10.10.10.5:80. Post-dump, the agent issued 'whoami /user' to enumerate the current identity.",
+  "iocs": {
+    "suspicious_processes": [
+      "C:\\windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -noP -sta -w 1 -enc SQBGACg..."
+    ],
+    "process_names": [
+      "powershell.exe",
+      "whoami.exe",
+      "lsass.exe"
+    ],
+    "file_paths": [
+      "C:\\Windows\\Prefetch\\WHOAMI.EXE-B8288E39.pf"
+    ],
+    "file_hashes": [
+      "A8A4C4719113B071BB50D67F6E12C188B92C70EEAFDFCD6F5DA69B6AAA99A7FD",
+      "2EEEEC89E705F73FFBCAE014E1828788",
+      "8F1F9E265911956C7F8F3861C34DEF9B8FA63813"
+    ],
+    "user_accounts": [
+      "THESHIRE\\pgustavo"
+    ],
+    "target_hosts": [
+      "WORKSTATION5.theshire.local"
+    ],
+    "network_ips": [
+      "172.18.39.5",
+      "10.10.10.5"
+    ],
+    "c2_endpoints": [
+      "10.10.10.5:80"
+    ],
+    "lsass_access": [
+      {
+        "source_image": "C:\\windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+        "target_image": "C:\\windows\\system32\\lsass.exe",
+        "granted_access": "0x1010",
+        "source_pid": "1648",
+        "target_pid": "768"
+      }
+    ]
+  },
+  "truth_iocs": [
+    {
+      "type": "sha256",
+      "value": "A8A4C4719113B071BB50D67F6E12C188B92C70EEAFDFCD6F5DA69B6AAA99A7FD"
+    },
+    {
+      "type": "md5",
+      "value": "2EEEEC89E705F73FFBCAE014E1828788"
+    },
+    {
+      "type": "ip",
+      "value": "10.10.10.5"
+    }
+  ],
+  "mitre_techniques": [
+    "T1003.001",
+    "T1059.001",
+    "T1055",
+    "T1071.001"
+  ],
+  "benign_artifacts_for_noise": [
+    "C:\\windows\\system32\\svchost.exe",
+    "C:\\windows\\system32\\DFSRs.exe",
+    "C:\\windows\\ADWS\\Microsoft.ActiveDirectory.WebServices.exe",
+    "C:\\windows\\system32\\dns.exe"
+  ],
+  "remediation_actions": [
+    "Isolate WORKSTATION5.theshire.local from the network immediately to terminate the active C2 channel to 10.10.10.5:80.",
+    "Terminate the malicious powershell.exe process (PID 1648) on WORKSTATION5.",
+    "Assume all credentials cached on WORKSTATION5 are compromised; force a domain-wide password reset starting with privileged accounts.",
+    "Reset Kerberos tickets (run klist purge) and revoke NTLM sessions for THESHIRE\\pgustavo and any accounts whose hashes may have been dumped.",
+    "Block outbound TCP to 10.10.10.5:80 at the network perimeter and investigate the C2 host.",
+    "Review all lateral movement from WORKSTATION5 since 2020-08-07T14:32Z for pass-the-hash or pass-the-ticket activity.",
+    "Enable Credential Guard on Windows 10+ endpoints to prevent future lsass memory reads.",
+    "Add a SIEM alert for Sysmon EventID 10 where TargetImage contains lsass.exe and GrantedAccess includes 0x0010 (VM_READ)."
+  ]
+}
