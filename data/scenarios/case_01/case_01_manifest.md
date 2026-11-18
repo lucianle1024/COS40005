@@ -1,7 +1,7 @@
 # Case 1 Dataset Manifest
 
 - **Scenario ID:** `case_01`
-- **Source:** [OTRF Security-Datasets](https://github.com/OTRF/Security-Datasets) (`empire_launcher_vbs`)
+- **Source:** [OTRF Security-Datasets](https://github.com/OTRF/Security-Datasets/blob/master/datasets/atomic/windows/execution/host/empire_launcher_vbs.zip) (`empire_launcher_vbs`)
 - **License:** Apache 2.0 / Open Source
 - **Log Feeds:** Microsoft-Windows-Sysmon/Operational, Microsoft-Windows-Security-Auditing, Microsoft-Windows-PowerShell/Operational
 - **Target Host:** `WORKSTATION5.theshire.local`
