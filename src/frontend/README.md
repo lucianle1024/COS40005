@@ -10,7 +10,7 @@ npm ci --ignore-scripts
 npm run dev
 ```
 
-Open http://127.0.0.1:5173/. If the backend is on another port, set `VITE_API_BASE_URL` before starting Vite. The backend must allow the frontend origin through CORS.
+Open localhost. If the backend is on another port, set `VITE_API_BASE_URL` before starting Vite. The backend must allow the frontend origin through CORS.
 
 ## Case selection
 
