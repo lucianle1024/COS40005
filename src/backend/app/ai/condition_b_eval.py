@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.schemas.scenario import ScenarioInput
 
-DEFAULT_MODEL = "gemini-3.8-flash"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 PROMPT_VERSION = "condition-b-v1"
 
 IocType = Literal["ip", "domain", "md5", "sha256"]

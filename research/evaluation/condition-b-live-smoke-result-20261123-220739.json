@@ -1,0 +1,22 @@
+{
+  "summary": "Analysis of synthetic test evidence indicates a baseline network connection attempt to a documentation-only IP address without any actual incident activity.",
+  "reported_iocs": [],
+  "timeline": [
+    {
+      "timestamp": "2023-01-01T00:00:00Z",
+      "description": "Synthetic network connection attempt to documentation-only IP 192.0.2.45 recorded.",
+      "evidence_ids": [
+        "E01"
+      ]
+    }
+  ],
+  "recommended_actions": [
+    "No action required as this is a synthetic test event involving a documentation-only IP address."
+  ],
+  "scenario_id": "live-smoke-synthetic-001",
+  "scenario_version": "0.1",
+  "condition": "B",
+  "model": "gemini-3.5-flash-lite",
+  "prompt_version": "condition-b-v1",
+  "run_duration_ms": 2336
+}
