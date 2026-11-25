@@ -2,15 +2,23 @@
 
 import json
 import os
+import sys
 import time
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Callable, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
 from app.schemas.scenario import ScenarioInput
 
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
+AVAILABLE_MODELS = (
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-3.6-flash",
+    "gemini-3.8-flash",
+    "gemini-3-flash-preview",
+)
 PROMPT_VERSION = "condition-b-v1"
 
 IocType = Literal["ip", "domain", "md5", "sha256"]
@@ -102,10 +110,11 @@ def analyze_condition_b(
     scenario: ScenarioInput,
     *,
     client: ConditionBClient | None = None,
+    model: str | None = None,
 ) -> ConditionBResult:
     """Analyze the shared scenario input and return a scoreable AI-only result."""
     api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    model = os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+    selected_model = model or os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
     if client is None:
         if not api_key:
             raise EnvironmentError(
@@ -139,7 +148,7 @@ def analyze_condition_b(
 
     started_at = time.perf_counter()
     response = active_client.models.generate_content(
-        model=model,
+        model=selected_model,
         contents=contents,
         config=config,
     )
@@ -157,7 +166,7 @@ def analyze_condition_b(
         **analysis.model_dump(),
         scenario_id=scenario.id,
         scenario_version=scenario.version,
-        model=model,
+        model=selected_model,
         prompt_version=PROMPT_VERSION,
         run_duration_ms=run_duration_ms,
     )
@@ -166,13 +175,15 @@ def analyze_condition_b(
 def run_condition_b_evaluation(
     input_scenario_path: str | Path,
     output_report_path: str | Path,
+    *,
+    model: str | None = None,
 ) -> ConditionBResult:
     """Run Condition B from a JSON-serialized shared ScenarioInput."""
     scenario_data = json.loads(
         Path(input_scenario_path).read_text(encoding="utf-8")
     )
     scenario = ScenarioInput.model_validate(scenario_data)
-    result = analyze_condition_b(scenario)
+    result = analyze_condition_b(scenario, model=model)
     Path(output_report_path).write_text(
         json.dumps(result.model_dump(), indent=2) + "\n",
         encoding="utf-8",
@@ -180,11 +191,88 @@ def run_condition_b_evaluation(
     return result
 
 
-if __name__ == "__main__":
+def _choose_model(
+    current_model: str,
+    input_fn: Callable[[str], str],
+    output_fn: Callable[[str], object],
+) -> str:
+    output_fn("Available Condition B models:")
+    for index, model_name in enumerate(AVAILABLE_MODELS, start=1):
+        marker = " (current)" if model_name == current_model else ""
+        output_fn(f"{index}. {model_name}{marker}")
+    output_fn("Enter a number, or press Enter to keep the current model.")
+
+    while True:
+        choice = input_fn("Model: ").strip()
+        if not choice:
+            return current_model
+        if choice.isdigit() and 1 <= int(choice) <= len(AVAILABLE_MODELS):
+            return AVAILABLE_MODELS[int(choice) - 1]
+        output_fn(f"Choose a number from 1 to {len(AVAILABLE_MODELS)}, or press Enter.")
+
+
+def run_interactive_cli(
+    input_fn: Callable[[str], str] | None = None,
+    output_fn: Callable[[str], object] | None = None,
+) -> None:
+    """Run the slash-command interface for selecting a model and scenario."""
+    prompt = input if input_fn is None else input_fn
+    write = print if output_fn is None else output_fn
+    selected_model = os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
+    write("Condition B interactive runner. Type /help for commands.")
+
+    while True:
+        command = prompt("Condition B> ").strip().lower()
+        if command == "/quit":
+            return
+        if command == "/help":
+            write("/model  Choose a model")
+            write("/run    Analyze a scenario JSON file")
+            write("/quit   Exit")
+        elif command == "/model":
+            selected_model = _choose_model(selected_model, prompt, write)
+            write(f"Selected model: {selected_model}")
+        elif command == "/run":
+            input_path = prompt("Scenario JSON path: ").strip()
+            output_path = prompt("Output JSON path: ").strip()
+            if not input_path or not output_path:
+                write("Both paths are required; run cancelled.")
+                continue
+            result = run_condition_b_evaluation(
+                input_path,
+                output_path,
+                model=selected_model,
+            )
+            write(
+                f"Condition B completed with {result.model}; "
+                f"result saved to {output_path}"
+            )
+        else:
+            write("Unknown command. Type /help for available commands.")
+
+
+def main(argv: list[str] | None = None) -> None:
     import argparse
+
+    arguments_list = sys.argv[1:] if argv is None else argv
+    if not arguments_list:
+        run_interactive_cli()
+        return
 
     parser = argparse.ArgumentParser(description="Run the Condition B AI-only baseline")
     parser.add_argument("input_scenario", type=Path)
     parser.add_argument("output_report", type=Path)
-    arguments = parser.parse_args()
-    run_condition_b_evaluation(arguments.input_scenario, arguments.output_report)
+    parser.add_argument(
+        "--model",
+        help="Gemini model ID to use (defaults to GEMINI_MODEL or the runner default)",
+    )
+    arguments = parser.parse_args(arguments_list)
+    run_condition_b_evaluation(
+        arguments.input_scenario,
+        arguments.output_report,
+        model=arguments.model,
+    )
+
+
+if __name__ == "__main__":
+    main()
