@@ -1,0 +1,14 @@
+
+Evaluating Human-AI Collaboration for Cybersecurity Incident Investigation
+
+Research question: Can AI assistance reduce cybersecurity investigation time or improve analyst performance without introducing unacceptable hallucination, incorrect reasoning, or over-reliance?
+Indicative outcome: A human-in-the-loop investigation prototype and comparative evaluation of human-only, AI-only, and human-plus-AI workflows using measurable security-analysis outcomes.
+
+Brief Description:
+Large Language Models (LLMs) and other AI systems are increasingly being introduced into security operations. A critical research question is not whether an AI model can summarize logs, but whether AI assistance measurably improves analyst effectiveness while preserving reliability and appropriate human oversight.
+This project investigates a human-in-the-loop security-analysis model. Students may develop an AI-assisted investigation prototype and compare three conditions: human analyst, AI system, and human analyst with AI assistance.
+The project should explicitly examine both value and failure modes, including hallucinations, incorrect recommendations, missed evidence, and analyst over-reliance.
+
+References
+ NIST Artificial Intelligence Risk Management Framework (AI RMF)
+ NIST AI..
