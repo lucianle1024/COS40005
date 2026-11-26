@@ -10,9 +10,12 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 from app.ai.condition_b_eval import (
+    AVAILABLE_MODELS,
     ConditionBModelAnalysis,
     ConditionBResult,
     analyze_condition_b,
+    main,
+    run_interactive_cli,
     run_condition_b_evaluation,
 )
 from app.schemas.scenario import ScenarioInput
@@ -95,6 +98,63 @@ class ConditionBEvaluationTests(unittest.TestCase):
         self.assertIn("E01", models.request["contents"])
         self.assertEqual(models.request["model"], "test-model")
         self.assertEqual(models.request["config"]["temperature"], 0.0)
+
+    def test_explicit_model_selection_is_used_and_recorded(self):
+        models = StubModels(SimpleNamespace(parsed=self.analysis, text=None))
+        result = analyze_condition_b(
+            self.scenario,
+            client=SimpleNamespace(models=models),
+            model=AVAILABLE_MODELS[1],
+        )
+
+        self.assertEqual(models.request["model"], AVAILABLE_MODELS[1])
+        self.assertEqual(result.model, AVAILABLE_MODELS[1])
+
+    def test_interactive_model_command_selects_model_for_run(self):
+        commands = iter(
+            ["/model", "2", "/run", "scenario.json", "result.json", "/quit"]
+        )
+        prompts = []
+        output = []
+        with patch(
+            "app.ai.condition_b_eval.run_condition_b_evaluation",
+            return_value=SimpleNamespace(model=AVAILABLE_MODELS[1]),
+        ) as run:
+            run_interactive_cli(
+                input_fn=lambda prompt: prompts.append(prompt) or next(commands),
+                output_fn=output.append,
+            )
+
+        run.assert_called_once_with(
+            "scenario.json",
+            "result.json",
+            model=AVAILABLE_MODELS[1],
+        )
+        self.assertGreaterEqual(len(AVAILABLE_MODELS), 5)
+        self.assertTrue(any(AVAILABLE_MODELS[1] in line for line in output))
+
+    def test_interactive_model_picker_reprompts_on_invalid_choice(self):
+        commands = iter(["/model", "0", "6", "1", "/quit"])
+        prompts = []
+        output = []
+        run_interactive_cli(
+            input_fn=lambda prompt: prompts.append(prompt) or next(commands),
+            output_fn=output.append,
+        )
+
+        self.assertTrue(any("Choose a number from 1 to 5" in line for line in output))
+
+    def test_cli_model_option_is_forwarded_to_runner(self):
+        with patch(
+            "app.ai.condition_b_eval.run_condition_b_evaluation"
+        ) as run:
+            main(["scenario.json", "result.json", "--model", AVAILABLE_MODELS[2]])
+
+        run.assert_called_once_with(
+            Path("scenario.json"),
+            Path("result.json"),
+            model=AVAILABLE_MODELS[2],
+        )
 
     def test_rejects_unknown_evidence_references(self):
         invalid_analysis = self.analysis.model_copy(deep=True)

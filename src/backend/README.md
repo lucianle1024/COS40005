@@ -116,14 +116,26 @@ From `src/backend`, run it with a JSON file matching the shared
 .\.venv\Scripts\python.exe -m app.ai.condition_b_eval input-scenario.json output-report.json
 ```
 
-Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` before running; optionally set
-`GEMINI_MODEL` to select the model. This makes a live provider request. Do not
-use it for study results until the case, scoring, and measurement contracts
-have been approved. `run_duration_ms` measures from immediately before the
-provider request through structured-response and evidence-reference validation;
-it excludes process startup, input loading, and client construction. The team
-must approve this measurement boundary before comparing it with human trial
-timings.
+Add `--model <model-id>` to select a model for a one-off run. Run the module
+without arguments to use the interactive slash-command interface:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.ai.condition_b_eval
+```
+
+In interactive mode, enter `/model` to choose from the five listed Gemini
+models, `/run` to provide the scenario and output JSON paths, `/help` for
+commands, or `/quit` to exit. The selection lasts for that interactive session.
+Alternatively, set `GEMINI_MODEL` to choose the default model. Model access,
+free-tier availability, quotas, and pricing depend on the provider account and
+can change; a listed model is not a guarantee of availability or zero cost.
+Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` before running; this makes a live
+provider request. Do not use it for study results until the case, scoring, and
+measurement contracts have been approved. `run_duration_ms` measures from
+immediately before the provider request through structured-response and
+evidence-reference validation; it excludes process startup, input loading, and
+client construction. The team must approve this measurement boundary before
+comparing it with human trial timings.
 
 The frontend does not send these events yet. This remains **storage-only**. SCRUM-102 has been merged; API and UI integration are still pending. The existing Condition B result remains in `investigation_sessions.findings`. Do not use these draft timestamps as final study outcomes.
 
