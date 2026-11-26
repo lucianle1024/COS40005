@@ -32,6 +32,6 @@ Then run:
 python research/evaluation/metric_scoring.py --case-truth data/scenarios/case_01/case_01_truth.json --report path/to/local-report.json
 ```
 
-The truth currently contains 13 grouped findings and four MITRE techniques (17 reference entries), plus two explicitly typed `truth_iocs` hashes. `reference_matching` counts agreement with the reference, not verified malicious-IOC accuracy. Results include a SHA-256 of the truth file for reproducibility; reports can supply `reference_sha256` to require an exact match.
+The truth currently contains 13 grouped findings and four MITRE techniques (17 reference entries), plus three explicitly typed `truth_iocs` hashes (SHA-256, MD5 and SHA-1). `reference_matching` counts agreement with the reference, not verified malicious-IOC accuracy. Results include a SHA-256 of the truth file for reproducibility; reports can supply `reference_sha256` to require an exact match.
 
 The frontend final report still stores reasoning and evidence IDs rather than `reported_findings` or typed `reported_iocs`, so an adapter and validated timing events are needed for real trials. The case owner must confirm scored malicious vs contextual categories before participant evaluation. Do not commit participant data or expose the ground-truth file to the participant UI.
