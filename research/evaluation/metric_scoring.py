@@ -11,7 +11,8 @@ import json
 import re
 from pathlib import Path
 
-IOC_TYPES = {"ip", "domain", "md5", "sha256"}
+HASH_LENGTHS = {"md5": 32, "sha1": 40, "sha256": 64}
+IOC_TYPES = {"ip", "domain", *HASH_LENGTHS}
 
 
 def canonical_ioc(item):
@@ -26,7 +27,7 @@ def canonical_ioc(item):
         if not value or " " in value or "." not in value:
             raise ValueError(f"Invalid domain: {value}")
     else:
-        length = 32 if kind == "md5" else 64
+        length = HASH_LENGTHS[kind]
         if len(value) != length or not re.fullmatch(r"[0-9a-fA-F]+", value):
             raise ValueError(f"Invalid {kind} hash")
         value = value.lower()
@@ -166,7 +167,7 @@ def main():
         result = {
             "dataset": args.case_truth.parent.name,
             "scenario_id": truth["scenario_id"],
-            "rubric_version": "draft-v0.2",
+            "rubric_version": "draft-v0.3",
             "reference_sha256": hashlib.sha256(args.case_truth.read_bytes()).hexdigest(),
             "reference_counts": {
                 **{category: len(values) for category, values in truth["iocs"].items()},

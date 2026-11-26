@@ -146,7 +146,7 @@ class MetricScoringTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             output = json.loads(result.stdout)
             self.assertEqual(output["reference_sha256"], expected_sha)
-            self.assertEqual(output["rubric_version"], "draft-v0.2")
+            self.assertEqual(output["rubric_version"], "draft-v0.3")
             self.assertNotIn("f1", output["reference_matching"])
             report["reference_sha256"] = "0" * 64
             report_path.write_text(json.dumps(report), encoding="utf-8")
@@ -170,9 +170,35 @@ class MetricScoringTests(unittest.TestCase):
     def test_current_truth_typed_iocs_are_separate_from_reference_findings(self):
         truth = self.case_truth("case_01")
         result = score_iocs(truth["truth_iocs"], truth["truth_iocs"])
-        self.assertEqual((result["tp"], result["fp"], result["fn"]), (2, 0, 0))
+        self.assertEqual((result["tp"], result["fp"], result["fn"]), (3, 0, 0))
         self.assertEqual(result["f1"], 1)
         self.assertEqual(len(reference_findings(truth)), 17)
+        self.assertEqual({ioc["type"] for ioc in truth["truth_iocs"]}, {"md5", "sha1", "sha256"})
+        self.assertIn(next(ioc["value"] for ioc in truth["truth_iocs"] if ioc["type"] == "sha1"), truth["iocs"]["file_hashes"])
+
+    def test_sha1_normalization_and_deduplication(self):
+        truth = [{"type": "sha1", "value": "a" * 40}]
+        reported = truth + [{"type": "SHA1", "value": " " + "A" * 40 + " "}]
+        result = score_iocs(truth, reported)
+        self.assertEqual((result["tp"], result["fp"], result["fn"], result["f1"]), (1, 0, 0, 1))
+
+    def test_sha1_requires_full_hex_value(self):
+        for value in ("a" * 39, "a" * 41, "z" * 40, "a" * 32, "a" * 64):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                score_iocs([], [{"type": "sha1", "value": value}])
+
+    def test_wrong_sha1_has_no_partial_true_positive(self):
+        result = score_iocs([{"type": "sha1", "value": "a" * 40}],
+                            [{"type": "sha1", "value": "a" * 39 + "b"}])
+        self.assertEqual((result["tp"], result["fp"], result["fn"], result["f1"]), (0, 1, 1, 0))
+
+    def test_missing_case1_sha1_reduces_recall(self):
+        truth = self.case_truth("case_01")["truth_iocs"]
+        reported = [ioc for ioc in truth if ioc["type"] != "sha1"]
+        result = score_iocs(truth, reported)
+        self.assertEqual((result["tp"], result["fp"], result["fn"]), (2, 0, 1))
+        self.assertAlmostEqual(result["recall"], 2 / 3)
+        self.assertAlmostEqual(result["f1"], 0.8)
 
     @staticmethod
     def valid_trial():

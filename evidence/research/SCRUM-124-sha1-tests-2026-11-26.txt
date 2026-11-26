@@ -1,0 +1,66 @@
+SCRUM-124 - AI-assisted synthetic test evidence
+Date: 2026-11-26
+Upstream main: f2438dcfa348231ed2bf48d6ae8a89c607065dd4
+Baseline source files verified against upstream Git blob hashes:
+100644 blob c71d3b6cf7c56b76a1bb042938833683b71304e2	data/scenarios/case_01/case_01_truth.json
+100644 blob 09a2ba99bac33a49051e5dcd8d623895fb4ff463	research/evaluation/case-01-scoring-rubric.md
+100644 blob 10e84c32d2feb9b91107d95f0893bca62771ded2	research/evaluation/metric_scoring.py
+100644 blob 738feb0d178618315a215a6bc50c10275241263a	research/evaluation/test_metric_scoring.py
+
+Proposed changes: add SHA-1 typed IOC support and promote the existing Case 1 reference SHA-1 to truth_iocs. No other datasets or AI code changed.
+Proposed truth SHA-256: f8e0d4b2c87b5952aaaefe7df517152b447d63adc8d6313842fee67044f3e1bd  data/scenarios/case_01/case_01_truth.json
+
+Command: python -m unittest discover -s research/evaluation -p "test_metric_scoring.py" -v
+
+test_both_empty_not_perfect (test_metric_scoring.MetricScoringTests.test_both_empty_not_perfect) ... ok
+test_condition_a_cannot_expose_ai (test_metric_scoring.MetricScoringTests.test_condition_a_cannot_expose_ai) ... ok
+test_conflicting_duplicate_event_rejected (test_metric_scoring.MetricScoringTests.test_conflicting_duplicate_event_rejected) ... ok
+test_current_case_empty_report_is_not_perfect (test_metric_scoring.MetricScoringTests.test_current_case_empty_report_is_not_perfect) ... ok
+test_current_case_partial_report_has_verified_counts (test_metric_scoring.MetricScoringTests.test_current_case_partial_report_has_verified_counts) ... ok
+test_current_case_reference_matches_casefolded_truth (test_metric_scoring.MetricScoringTests.test_current_case_reference_matches_casefolded_truth) ... ok
+test_current_case_reference_matches_truth (test_metric_scoring.MetricScoringTests.test_current_case_reference_matches_truth) ... ok
+test_current_truth_typed_iocs_are_separate_from_reference_findings (test_metric_scoring.MetricScoringTests.test_current_truth_typed_iocs_are_separate_from_reference_findings) ... ok
+test_double_submit_rejected (test_metric_scoring.MetricScoringTests.test_double_submit_rejected) ... ok
+test_duplicate_event_id_is_idempotent (test_metric_scoring.MetricScoringTests.test_duplicate_event_id_is_idempotent) ... ok
+test_duplicate_reported_ioc_not_double_counted (test_metric_scoring.MetricScoringTests.test_duplicate_reported_ioc_not_double_counted) ... ok
+test_duration_and_first_triage (test_metric_scoring.MetricScoringTests.test_duration_and_first_triage) ... ok
+test_example_two_tp_one_fp_one_fn (test_metric_scoring.MetricScoringTests.test_example_two_tp_one_fp_one_fn) ... ok
+test_invalid_reference_hash_rejected (test_metric_scoring.MetricScoringTests.test_invalid_reference_hash_rejected) ... ok
+test_missing_case1_sha1_reduces_recall (test_metric_scoring.MetricScoringTests.test_missing_case1_sha1_reduces_recall) ... ok
+test_missing_submit_is_missing_duration (test_metric_scoring.MetricScoringTests.test_missing_submit_is_missing_duration) ... ok
+test_negative_elapsed_time_rejected (test_metric_scoring.MetricScoringTests.test_negative_elapsed_time_rejected) ... ok
+test_no_predictions (test_metric_scoring.MetricScoringTests.test_no_predictions) ... ok
+test_report_and_reference_hash_mismatch (test_metric_scoring.MetricScoringTests.test_report_and_reference_hash_mismatch) ... ok
+test_sha1_normalization_and_deduplication (test_metric_scoring.MetricScoringTests.test_sha1_normalization_and_deduplication) ... ok
+test_sha1_requires_full_hex_value (test_metric_scoring.MetricScoringTests.test_sha1_requires_full_hex_value) ... ok
+test_unsupported_type_requires_review (test_metric_scoring.MetricScoringTests.test_unsupported_type_requires_review) ... ok
+test_windows_reference_matching_is_casefold_exact (test_metric_scoring.MetricScoringTests.test_windows_reference_matching_is_casefold_exact) ... ok
+test_wrong_sha1_has_no_partial_true_positive (test_metric_scoring.MetricScoringTests.test_wrong_sha1_has_no_partial_true_positive) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 2.070s
+
+OK
+
+Scope: AI-assisted verification on isolated copies. Not a participant study, live AI run or full integration test. Partial-credit rubric is proposed, not automatically scored. AI output schema support for SHA-1 remains pending.
+
+Student local validation (reported by Nhat on 2026-11-26)
+- Initial local run: 22/24 passed; two tests failed because the local truth file contained only two typed IOCs.
+- Corrective action: Nhat replaced the Case 1 truth file with the revised three-IOC version and reported a successful rerun (24/24). Final rerun duration was not supplied.
+- CLI ground-truth validation: PASS (student-supplied output).
+  dataset: case_01
+  scenario_id: case_01
+  rubric_version: draft-v0.3
+  reference_sha256: f8e0d4b2c87b5952aaaefe7df517152b447d63adc8d6313842fee67044f3e1bd
+  reference_counts: suspicious_processes=1, process_names=3, file_paths=2, file_hashes=3, user_accounts=1, target_hosts=1, registry_keys_modified=2, mitre_techniques=4
+  Total reference entries: 17. Local reference hash matches the revised file and draft rubric.
+- CLI synthetic trial validation: PASS (student-supplied output).
+  session_id: session-demo-001
+  scenario_id: case_01
+  scenario_version: 1.0
+  condition: C
+  tp=2, fp=1, fn=1
+  precision=0.6666666666666666, recall=0.6666666666666666, f1=0.6666666666666666
+  duration_seconds=180.0, first_triage_seconds=30.0
+
+Remaining: student code review and any necessary modifications, team approval of the separate partial-credit criteria and version freeze, shared AI report schema compatibility, and commit verification. All results are synthetic, not participant outcomes.

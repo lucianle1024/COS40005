@@ -1,0 +1,8 @@
+AI Usage Log - SCRUM-124 (draft for student review)
+- Date: 2026-11-26
+- Tool: ChatGPT (GPT-6.2)
+- Purpose: Review the latest source, support SHA-1 IOC evaluation and propose separate partial-credit criteria without expanding other IOC types.
+- Request: Huy confirmed through Nhat that SHA-1 should count towards F1, broader expansion should wait for Phi and Quang, and partial credit may be used if cases are defined clearly.
+- AI assistance: Compared the current truth and scorer contracts, proposed a minimal SHA-1 change, updated the draft rubric and suggested edge-case tests. Ran 24 synthetic tests on isolated copies with the proposed changes.
+- Student verification: Nhat manually downloaded and placed the files in the local repository. The initial local test run passed 22 of 24 tests; the two failures were due to the old two-IOC truth file. After replacing that file, Nhat reported a successful 24-test rerun. Nhat also supplied CLI outputs confirming the draft-v0.3 reference hash, 17 reference findings and the expected synthetic trial scores and timing. Personal code review, any necessary modifications, and the final declaration still require student confirmation. Partial-credit criteria and the version freeze remain pending team agreement.
+- Declaration: This is an AI-assisted draft, not a claim of independent implementation or a final student declaration. Complete the declaration after personal review and verification; discuss AI use with the supervisor and client in accordance with the unit guideline.

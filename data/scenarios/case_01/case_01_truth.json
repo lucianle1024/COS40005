@@ -39,6 +39,10 @@
     {
       "type": "md5",
       "value": "563EDAE37876138FDFF47F3E7A9A78FD"
+    },
+    {
+      "type": "sha1",
+      "value": "542C46C652DDEFC87414213A8BEA0C65DD0377A9"
     }
   ],
   "mitre_techniques": [
