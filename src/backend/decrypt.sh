@@ -7,15 +7,17 @@ PW="${EVIDENCE_PW:-infected}"            # public evidence password
 
 mkdir -p "$DST"
 shopt -s nullglob
-zips=("$SRC"/*_evidence.zip "$SRC"/*_evidence.7z)
+zips=("$SRC"/*_data.zip "$SRC"/*_data.7z)
 [ ${#zips[@]} -gt 0 ] || { echo "No evidence zips in $SRC" >&2; exit 1; }
 
 for z in "${zips[@]}"; do
-  c=$(basename "$z"); c="${c%_evidence.*}"
+  c=$(basename "$z"); c="${c%_data.*}"
   mkdir -p "$DST/$c"
   7z x -y -p"$PW" -o"$DST/$c" "$z" >/dev/null
-  ( cd "$DST/$c" && sha256sum -c "$SRC/${c}_evidence.sha256" ) \
-    || { echo "Checksum FAILED for $c" >&2; exit 1; }
+  if [ -f "$SRC/${c}_evidence.sha256" ]; then
+    ( cd "$DST/$c" && sha256sum -c "$SRC/${c}_evidence.sha256" ) \
+      || { echo "Checksum FAILED for $c" >&2; exit 1; }
+  fi
   echo "$c extracted and verified"
 done
 

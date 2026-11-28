@@ -1,12 +1,24 @@
 """Database-only telemetry checks. All tests use isolated temporary SQLite files."""
 
 import sqlite3
+from pathlib import Path
 
 import pytest
 
 from app.db.repositories import Sessions
 from app.db.telemetry import TelemetryStore
 from app.domain.types import Action, Mode
+
+EXAMPLES = next(
+    (
+        parent / "docs" / "technical" / "telemetry-event-examples.json"
+        for parent in Path(__file__).resolve().parents
+        if (
+            parent / "docs" / "technical" / "telemetry-event-examples.json"
+        ).is_file()
+    ),
+    None,
+)
 
 
 @pytest.fixture
@@ -132,12 +144,12 @@ def test_foreign_key_protection_and_isolated_databases(stores, tmp_path):
         TelemetryStore(other_path).list_events(session_id)
 
 
+@pytest.mark.skipif(EXAMPLES is None, reason="Telemetry contract examples are not available")
 def test_current_contract_examples_can_be_persisted(stores):
     import json
-    from pathlib import Path
 
-    path = Path(__file__).resolve().parents[3] / "docs/technical/telemetry-event-examples.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
+    assert EXAMPLES is not None
+    data = json.loads(EXAMPLES.read_text(encoding="utf-8"))
     sessions, storage, _ = stores
     session_ids = {}
     for sample_id, mode in data["sample_session_modes"].items():

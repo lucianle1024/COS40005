@@ -1,0 +1,8 @@
+services:
+  api:   
+    build: .
+    environment:
+      EVIDENCE_PW: ${EVIDENCE_PW:-infected}
+      CASE_PATH: ${CASE_PATH:-/app/cases/${CASE_ID:-case_01}/${CASE_ID:-case_01}_evidence.json}
+    volumes:                                                                                    
+      - ../../data/scenarios/${CASE_ID:-case_01}:/data/cases:ro
