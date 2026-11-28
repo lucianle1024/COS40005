@@ -1,7 +1,22 @@
+import json
+
 from fastapi.testclient import TestClient
 import pytest
 
 from app.main import create_app
+
+
+@pytest.fixture(autouse=True)
+def case_evidence(tmp_path, monkeypatch):
+    evidence_path = tmp_path / "case_01_evidence.json"
+    records = [{"Message": f"Synthetic event {index}"} for index in range(1, 40)]
+    records[1]["Message"] = r"Registry path \Winlogon"
+    records[38]["Message"] = "powershell.exe -NoProfile"
+    evidence_path.write_text(
+        "\n".join(json.dumps(record) for record in records),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("app.api.sessions.CASE_PATH", evidence_path)
 
 
 @pytest.mark.parametrize("mode", ["A", "C"])
