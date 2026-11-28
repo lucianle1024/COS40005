@@ -33,9 +33,6 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]" -c constraints.txt
 ```
 
-In PowerShell, use `.venv`'s Python directly as shown below, or activate it with `.\.venv\Scripts\Activate.ps1`. In Bash, activate it with `source .venv/bin/activate` or use `.venv/bin/python` in place of `python`.
-
-
 This is a local development build. Case 1 Human + AI serves fixed-rule claims from `GET /sessions/{session_id}/advice`. The route is limited to Human + AI sessions. Individual review decisions are held in the React workspace. Participant access control and telemetry API integration remain outside this increment.
 
 
@@ -93,6 +90,19 @@ Run the commands below from `src/backend`. With the virtual environment activate
 ```bash
 python -m pytest -q tests/test_health.py tests/test_assessment.py
 ```
+
+### Run the test suite in Docker
+
+Build from this directory so the Dockerfile can copy the backend files, then run
+the container without mounting the repository:
+
+```bash
+docker build -t cos40005-backend .
+docker run --rm cos40005-backend
+```
+
+The image includes `app/` and `tests/`; its default command runs the full test
+suite.
 
 
 The tests cover liveness, OpenAPI registration, and offline Condition B output
