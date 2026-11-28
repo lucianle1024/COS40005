@@ -34,8 +34,6 @@ def main() -> int:
         "-m",
         "pytest",
         "-q",
-        "--ignore=tests/test_health.py",
-        "--ignore=tests/test_telemetry_contract.py",
     ]
 
     env = os.environ.copy()

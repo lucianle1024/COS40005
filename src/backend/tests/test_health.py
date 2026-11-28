@@ -2,19 +2,25 @@
 import json
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
 
-SCENARIO_PATH = (
-    Path(__file__).resolve().parents[3]
-    / "data"
-    / "scenarios"
-    / "case_01"
-    / "case_01_evidence.json"
+SCENARIO_PATH = next(
+    (
+        parent / "data" / "scenarios" / "case_01" / "case_01_evidence.json"
+        for parent in Path(__file__).resolve().parents
+        if (
+            parent / "data" / "scenarios" / "case_01" / "case_01_evidence.json"
+        ).is_file()
+    ),
+    None,
 )
 
+
 def load_case_one():
+    assert SCENARIO_PATH is not None
     records = []
 
     with SCENARIO_PATH.open(encoding="utf-8") as evidence_file:
@@ -50,6 +56,7 @@ def test_health_and_openapi():
         assert {"/health", "/investigate", "/sessions"} <= set(schema.json()["paths"])
 
 
+@pytest.mark.skipif(SCENARIO_PATH is None, reason="Case 1 evidence is not available")
 def test_case_one_real_evidence_is_labelled_suspicious():
     case_data = load_case_one()
 
