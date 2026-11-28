@@ -133,19 +133,36 @@ without arguments to use the interactive slash-command interface:
 .\.venv\Scripts\python.exe -m app.ai.condition_b_eval
 ```
 
-In interactive mode, enter `/model` to choose from the five listed Gemini
-models, `/run` to provide the scenario and output JSON paths, `/help` for
-commands, or `/quit` to exit. The selection lasts for that interactive session.
-Alternatively, set `GEMINI_MODEL` to choose the default model. Model access,
-free-tier availability, quotas, and pricing depend on the provider account and
-can change; a listed model is not a guarantee of availability or zero cost.
-Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` before running; this makes a live
-provider request. Do not use it for study results until the case, scoring, and
-measurement contracts have been approved. `run_duration_ms` measures from
-immediately before the provider request through structured-response and
-evidence-reference validation; it excludes process startup, input loading, and
-client construction. The team must approve this measurement boundary before
-comparing it with human trial timings.
+In interactive mode, enter `/model` to choose one of the listed models,
+`/run` to provide the scenario and output JSON paths, `/help` for commands, or
+`/quit` to exit. The selection lasts for that interactive session. The menu
+contains Gemini `gemini-3.5-flash-lite` and four local Ollama models:
+`qwen2.5:3b`, `llama3.2:3b`, `mistral:7b`, and `deepseek-r1:7b`.
+
+Install and start [Ollama](https://ollama.com/download), then download the
+local models you plan to use:
+
+```powershell
+ollama pull qwen2.5:3b
+ollama pull llama3.2:3b
+ollama pull mistral:7b
+ollama pull deepseek-r1:7b
+```
+
+Ollama's local API defaults to `http://127.0.0.1:11434`; set `OLLAMA_HOST` if
+using another address. Local Ollama requests do not need a Gemini key and send
+the scenario to the local Ollama service. Model downloads require disk space
+and local hardware resources. Gemini requests require `GEMINI_API_KEY` or
+`GOOGLE_API_KEY` and send the scenario to Google's API. For one-off runs,
+`--model <model-id>` selects a model. Otherwise the runner uses `GEMINI_MODEL`,
+then its Gemini default. Gemini access, quotas, and pricing depend on the
+provider account; a model choice does not guarantee availability or zero cost.
+Do not use the runner for study results until the case, scoring, and measurement
+contracts have been approved. `run_duration_ms` measures from immediately
+before the provider request through structured-response and evidence-reference
+validation; it excludes process startup, input loading, and client
+construction. The team must approve this measurement boundary before comparing
+it with human trial timings.
 
 The frontend does not send these events yet. This remains **storage-only**. SCRUM-102 has been merged; API and UI integration are still pending. The existing Condition B result remains in `investigation_sessions.findings`. Do not use these draft timestamps as final study outcomes.
 

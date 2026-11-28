@@ -4,6 +4,8 @@ import json
 import os
 import sys
 import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 from typing import Callable, Literal, Protocol
 
@@ -12,12 +14,15 @@ from pydantic import BaseModel, Field
 from app.schemas.scenario import ScenarioInput
 
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
+OLLAMA_MODELS = (
+    "qwen2.5:3b",
+    "llama3.2:3b",
+    "mistral:7b",
+    "deepseek-r1:7b",
+)
 AVAILABLE_MODELS = (
-    "gemini-3.5-flash-lite",
-    "gemini-3.1-flash-lite",
-    "gemini-3.6-flash",
-    "gemini-3.8-flash",
-    "gemini-3-flash-preview",
+    DEFAULT_MODEL,
+    *OLLAMA_MODELS,
 )
 PROMPT_VERSION = "condition-b-v1"
 
@@ -83,6 +88,50 @@ def _create_client(api_key: str) -> ConditionBClient:
     )
 
 
+def _generate_ollama_content(
+    model: str,
+    system_prompt: str,
+    contents: str,
+) -> str:
+    host = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
+    request_body = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": contents},
+        ],
+        "stream": False,
+        "format": ConditionBModelAnalysis.model_json_schema(),
+        "options": {"temperature": 0},
+    }
+    request = urllib.request.Request(
+        f"{host}/api/chat",
+        data=json.dumps(request_body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=300) as response:
+            response_data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as error:
+        error_body = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(
+            f"Ollama request failed with HTTP {error.code}: {error_body}"
+        ) from error
+    except urllib.error.URLError as error:
+        raise RuntimeError(
+            f"Cannot connect to Ollama at {host}; make sure Ollama is running."
+        ) from error
+
+    if not isinstance(response_data, dict):
+        raise ValueError("Ollama returned an invalid response object.")
+    message = response_data.get("message")
+    if not isinstance(message, dict) or not isinstance(message.get("content"), str):
+        raise ValueError("Ollama response did not contain message content.")
+    return message["content"]
+
+
 def _validate_evidence_references(
     analysis: ConditionBModelAnalysis,
     scenario: ScenarioInput,
@@ -113,16 +162,7 @@ def analyze_condition_b(
     model: str | None = None,
 ) -> ConditionBResult:
     """Analyze the shared scenario input and return a scoreable AI-only result."""
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     selected_model = model or os.environ.get("GEMINI_MODEL", DEFAULT_MODEL)
-    if client is None:
-        if not api_key:
-            raise EnvironmentError(
-                "Set GEMINI_API_KEY or GOOGLE_API_KEY before running Condition B."
-            )
-        active_client = _create_client(api_key)
-    else:
-        active_client = client
 
     system_prompt = (
         "You are an autonomous security incident analyst for an AI-only baseline. "
@@ -139,26 +179,44 @@ def analyze_condition_b(
         "analysis only:\n"
         + scenario.model_dump_json()
     )
-    config: dict[str, object] = {
-        "system_instruction": system_prompt,
-        "temperature": 0.0,
-        "response_mime_type": "application/json",
-        "response_schema": ConditionBModelAnalysis,
-    }
-
-    started_at = time.perf_counter()
-    response = active_client.models.generate_content(
-        model=selected_model,
-        contents=contents,
-        config=config,
-    )
-
-    if response.parsed is not None:
-        analysis = ConditionBModelAnalysis.model_validate(response.parsed)
-    elif response.text:
-        analysis = ConditionBModelAnalysis.model_validate_json(response.text)
+    if selected_model in OLLAMA_MODELS:
+        started_at = time.perf_counter()
+        response_text = _generate_ollama_content(
+            selected_model,
+            system_prompt,
+            contents,
+        )
+        analysis = ConditionBModelAnalysis.model_validate_json(response_text)
     else:
-        raise ValueError("Condition B provider returned no structured response.")
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if client is None:
+            if not api_key:
+                raise EnvironmentError(
+                    "Set GEMINI_API_KEY or GOOGLE_API_KEY before running Condition B."
+                )
+            active_client = _create_client(api_key)
+        else:
+            active_client = client
+
+        config: dict[str, object] = {
+            "system_instruction": system_prompt,
+            "temperature": 0.0,
+            "response_mime_type": "application/json",
+            "response_schema": ConditionBModelAnalysis,
+        }
+        started_at = time.perf_counter()
+        response = active_client.models.generate_content(
+            model=selected_model,
+            contents=contents,
+            config=config,
+        )
+
+        if response.parsed is not None:
+            analysis = ConditionBModelAnalysis.model_validate(response.parsed)
+        elif response.text:
+            analysis = ConditionBModelAnalysis.model_validate_json(response.text)
+        else:
+            raise ValueError("Condition B provider returned no structured response.")
 
     _validate_evidence_references(analysis, scenario)
     run_duration_ms = int((time.perf_counter() - started_at) * 1000)
@@ -264,7 +322,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("output_report", type=Path)
     parser.add_argument(
         "--model",
-        help="Gemini model ID to use (defaults to GEMINI_MODEL or the runner default)",
+        help="Model ID to use (defaults to GEMINI_MODEL or the runner default)",
     )
     arguments = parser.parse_args(arguments_list)
     run_condition_b_evaluation(
