@@ -26,6 +26,8 @@ Evidence is committed as a password-protected `.7z` archive (AES-256) to avoid W
 
 Use [run_docker_test.py](run_docker_test.py) from the repo root (`COS40005/`).
 
+> **Note:** The default archive password is `infected` (passed automatically via `EVIDENCE_PW`). You don't need to enter it manually unless an archive uses a different password, in which case set `EVIDENCE_PW=<password>`.
+
 ### Windows / macOS / Linux (with Docker permission)
 
 ```bash
