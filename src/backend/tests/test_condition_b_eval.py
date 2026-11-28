@@ -3,17 +3,21 @@
 import json
 import tempfile
 import unittest
+from io import BytesIO
 from pathlib import Path
 from types import SimpleNamespace
+from urllib.error import URLError
 from unittest.mock import patch
 
 from pydantic import ValidationError
 
 from app.ai.condition_b_eval import (
     AVAILABLE_MODELS,
+    OLLAMA_MODELS,
     ConditionBModelAnalysis,
     ConditionBResult,
     analyze_condition_b,
+    _generate_ollama_content,
     main,
     run_interactive_cli,
     run_condition_b_evaluation,
@@ -104,11 +108,60 @@ class ConditionBEvaluationTests(unittest.TestCase):
         result = analyze_condition_b(
             self.scenario,
             client=SimpleNamespace(models=models),
-            model=AVAILABLE_MODELS[1],
+            model="test-model-selected",
         )
 
-        self.assertEqual(models.request["model"], AVAILABLE_MODELS[1])
-        self.assertEqual(result.model, AVAILABLE_MODELS[1])
+        self.assertEqual(models.request["model"], "test-model-selected")
+        self.assertEqual(result.model, "test-model-selected")
+
+    def test_ollama_model_runs_without_api_key_and_records_model(self):
+        response_json = self.analysis.model_dump_json()
+        with patch.dict("os.environ", {}, clear=True), patch(
+            "app.ai.condition_b_eval._generate_ollama_content",
+            return_value=response_json,
+        ) as generate:
+            result = analyze_condition_b(self.scenario, model=OLLAMA_MODELS[0])
+
+        self.assertEqual(result.model, OLLAMA_MODELS[0])
+        generate.assert_called_once()
+
+    def test_ollama_request_uses_local_chat_api_and_json_schema(self):
+        response_body = json.dumps(
+            {"message": {"content": self.analysis.model_dump_json()}}
+        ).encode("utf-8")
+        with patch(
+            "app.ai.condition_b_eval.urllib.request.urlopen",
+            return_value=BytesIO(response_body),
+        ) as urlopen:
+            content = _generate_ollama_content(
+                OLLAMA_MODELS[0],
+                "system prompt",
+                "scenario content",
+            )
+
+        self.assertEqual(content, self.analysis.model_dump_json())
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "http://127.0.0.1:11434/api/chat")
+        body = json.loads(request.data.decode("utf-8"))
+        self.assertEqual(body["model"], OLLAMA_MODELS[0])
+        self.assertEqual(body["messages"][0]["content"], "system prompt")
+        self.assertEqual(body["messages"][1]["content"], "scenario content")
+        self.assertEqual(
+            body["format"],
+            ConditionBModelAnalysis.model_json_schema(),
+        )
+
+    def test_ollama_connection_error_explains_local_service_requirement(self):
+        with patch(
+            "app.ai.condition_b_eval.urllib.request.urlopen",
+            side_effect=URLError("connection refused"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "make sure Ollama is running"):
+                _generate_ollama_content(
+                    OLLAMA_MODELS[0],
+                    "system prompt",
+                    "scenario content",
+                )
 
     def test_interactive_model_command_selects_model_for_run(self):
         commands = iter(
