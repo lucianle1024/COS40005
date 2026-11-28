@@ -1,4 +1,5 @@
 """Open Case 1 sessions and persist draft or final findings."""
+import os
 from pathlib import Path
 from typing import Literal
 from uuid import UUID
@@ -12,10 +13,15 @@ from app.domain.rules import InvalidTransition
 from app.domain.types import Action, Mode
 from app.schemas.scenario import AdviceClaim, ScenarioInput
 
+# Fallback to case_01 if CASE_PATH is not set, for local development convenience.
 CASE_ID = "case_01"
 CASE_VERSION = "1.0"
-CASE_PATH = Path(__file__).resolve().parents[4] / "data/scenarios/case_01/case_01_evidence.json"
-
+CASE_PATH = Path(
+    os.environ.get(
+        "CASE_PATH",
+        Path(__file__).resolve().parents[2] / "cases/case_01/case_01_evidence.json",            
+    )
+)
 
 class OpenSession(BaseModel):
     case_id: str
